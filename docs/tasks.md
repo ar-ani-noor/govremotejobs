@@ -11,7 +11,7 @@
 - [x] Supabase project created via CLI: `cvrtvlhdvwqttyzlyhxb` (us-east-1) + linked
 - [ ] GitHub repo ar-ani-noor/govremotejobs (public) + push
 - [ ] **MANUAL (Imran): Cloudflare Pages project** — connect repo, build `npm run build`, output `dist`; create Deploy Hook "daily-ingest"; attach govremotejobs.com
-- [ ] **GATE 1**: exact inventory — API count for RemoteIndicator=True and TeleworkEligible=True (needs API key). Sanity: thousands.
+- [x] **GATE 1 (2026-08-19)**: remote federal = 35 (!), telework ≈10.2% of ≥10K corpus ≈ 1,000+, Workday contractor feeds validated (Leidos 412 / BAH ~2,000 / CACI 224 / GDIT 282 loose matches). Verdict: proceed re-weighted — see ADR-0007.
 - [ ] **GATE 2 (Imran)**: Keyword Planner volumes for "remote government jobs" cluster (free Google Ads account — reused later for AdSense). Sanity: ≥ ~10K/mo US.
 - [x] Astro hello-world builds locally (127ms); deploys on *.pages.dev
 
@@ -39,14 +39,14 @@
 - [ ] 410 Pages Function + expired-slugs.json
 - [ ] Verify: GSC shows Indexed; Indexing API 200s; closed URL curls 410 and exits sitemap
 
-## Phase D — Contractors (3–5 d)
+## Phase A2 — Contractors + telework (pulled into critical path, ADR-0007) (3–5 d)
 
-- [ ] Greenhouse + Lever adapters (public JSON feeds)
-- [ ] registry/companies.json — start ~15 (Booz Allen, Leidos, MITRE, SAIC, CACI, GDIT, …)
-- [ ] Remote-only filter per adapter (location normalization)
+- [ ] Workday CXS adapter (primary — the primes all use Workday; Greenhouse/Lever deferred per ADR-0007)
+- [ ] registry/companies.json — validated: Leidos, Booz Allen, CACI, GDIT; discover SAIC/MAXIMUS/Peraton/MITRE endpoints; grow to ~15
+- [ ] Remote-only filter (locationsText/title match, then detail-fetch for description)
+- [ ] Telework tier: agency-sliced USAJOBS queries (Code List API for org codes), client-side TeleworkEligible filter
 - [ ] /company/{x} hubs
-- [ ] SmartRecruiters + Workday adapters; registry → ~30
-- [ ] Verify: contractor jobs pass Rich Results; expiry-by-absence proven for one feed
+- [ ] Verify: contractor jobs pass Rich Results; expiry-by-absence proven for one feed; telework slicing enumerates past the 10K cap
 
 ## Phase E — Editorial for AdSense (2–4 wk part-time)
 

@@ -1,0 +1,9 @@
+{
+  "comment": "Federal contractors with public Workday careers APIs (ADR-0006/0007). Adding a company = one entry. instance = wdN subdomain; site = career site name in the CXS path.",
+  "companies": [
+    { "name": "Leidos",              "ats": "workday", "tenant": "leidos", "instance": "wd5",  "site": "External" },
+    { "name": "Booz Allen Hamilton", "ats": "workday", "tenant": "bah",    "instance": "wd1",  "site": "BAH_Jobs" },
+    { "name": "CACI International",  "ats": "workday", "tenant": "caci",   "instance": "wd1",  "site": "External" },
+    { "name": "GDIT",                "ats": "workday", "tenant": "gdit",   "instance": "wd5",  "site": "External_Career_Site" }
+  ]
+}

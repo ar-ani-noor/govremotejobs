@@ -3,6 +3,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { createHash } from 'node:crypto'
 import { usajobsAdapter, kebab } from './adapters/usajobs.ts'
+import { workdayAdapter, type WorkdayCompany } from './adapters/workday.ts'
+import { readFileSync } from 'node:fs'
 import type { NormalizedJob, SourceAdapter } from './adapters/types.ts'
 import { notifyGoogle } from './indexing-api.ts'
 
@@ -135,8 +137,14 @@ async function runSource(adapter: SourceAdapter) {
   return { changedSlugs, closedSlugs, ok }
 }
 
-const adapters: SourceAdapter[] = [usajobsAdapter()]
-// Phase D adds: contractor adapters driven by registry/companies.json
+const registry = JSON.parse(
+  readFileSync(new URL('./registry/companies.json', import.meta.url), 'utf8'),
+) as { companies: (WorkdayCompany & { ats: string })[] }
+
+const adapters: SourceAdapter[] = [
+  usajobsAdapter(),
+  ...registry.companies.filter((c) => c.ats === 'workday').map(workdayAdapter),
+]
 
 let allOk = true
 const allChanged: string[] = []
