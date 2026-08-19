@@ -15,3 +15,18 @@ async function count(label: string, params: Record<string, string>) {
 await count('ALL federal postings          ', {})
 await count('RemoteIndicator=True          ', { RemoteIndicator: 'True' })
 await count('TeleworkEligible=True (param?)', { TeleworkEligible: 'True' })
+
+// Sample 500 postings and measure the telework-eligible fraction empirically
+const qs = new URLSearchParams({ ResultsPerPage: '500', Page: '1', Fields: 'Full' })
+const res = await fetch(`https://data.usajobs.gov/api/search?${qs}`, { headers })
+if (res.ok) {
+  const data = await res.json()
+  const items = data?.SearchResult?.SearchResultItems ?? []
+  let telework = 0, remote = 0
+  for (const it of items) {
+    const d = it?.MatchedObjectDescriptor?.UserArea?.Details ?? {}
+    if (String(d.TeleworkEligible) === 'true' || d.TeleworkEligible === true) telework++
+    if (String(d.RemoteIndicator) === 'true' || d.RemoteIndicator === true) remote++
+  }
+  console.log(`SAMPLE of ${items.length}: telework-eligible=${telework} remote=${remote}`)
+}
