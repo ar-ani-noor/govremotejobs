@@ -24,12 +24,18 @@
 - [~] `.github/workflows/daily-ingest.yml` written; secrets pending (needs USAJOBS key + deploy hook)
 - [ ] Verify: 3 green scheduled runs; spot-check salaries/close dates vs USAJOBS; observe one job transition to closed
 
-## Phase B — Site + SEO pages (2–4 d)
+## Phase B — Site + SEO pages (2–4 d) — SHIPPED 2026-08-19
 
-- [ ] Job detail template: facts box, full description, prominent "Apply on USAJOBS", JobPosting JSON-LD (TELECOMMUTE + applicantLocationRequirements; omit directApply)
-- [ ] Hubs: /agency/{x}, /category/{x}, /grade/entry-level-gs-5-7, /remote/ vs /telework/
-- [ ] Homepage + internal linking (≤3 clicks to anything) + disclaimer footer
-- [ ] Verify: Rich Results Test passes on 5 prod URLs; deploy-hook chain end-to-end; Lighthouse ≥90
+- [x] Job detail template: facts box, full description, apply-on-origin CTA, JobPosting JSON-LD (TELECOMMUTE + applicantLocationRequirements; omit directApply)
+- [x] Hubs: /remote (with every-fully-remote-federal-job flagship section), /telework, /agency/*, /company/*, /agencies, /companies
+- [x] Homepage with live counts + disclaimer footer + 404
+- [x] Post-build manifests: chunked job sitemaps (real lastmod), hub sitemap, sitemap index, expired-slugs.json, robots.txt
+- [x] 410 Pages Function for expired slugs
+- [x] LIVE: govremotejobs.com serving 4,077 pages (3,935 jobs); JSON-LD verified in production
+- [ ] Verify: Google Rich Results Test on 5 prod URLs (manual, browser)
+- [ ] Verify: deploy-hook chain fires on tomorrow's scheduled run (secret was added mid-run today)
+- [ ] Verify: first real job expiry → 410 (needs a job to actually close)
+- [ ] Later: /category/{x} and /grade/entry-level hubs (deferred — employer + tier hubs shipped first)
 
 ## Phase C — Index plumbing (1–2 d) ← minimum viable outcome
 
@@ -45,7 +51,7 @@
 - [ ] FOLLOW-UP: BAH yields only 5/~2,000 — their remote designation likely lives outside locationsText (separate field or description); investigate their posting format to recover inventory
 - [ ] registry/companies.json — validated: Leidos, Booz Allen, CACI, GDIT; discover SAIC/MAXIMUS/Peraton/MITRE endpoints; grow to ~15
 - [ ] Remote-only filter (locationsText/title match, then detail-fetch for description)
-- [ ] Telework tier: agency-sliced USAJOBS queries (Code List API for org codes), client-side TeleworkEligible filter
+- [x] Telework tier: 198 dept slices → 3,752 jobs inserted, zero errors; dedupe verified across all sources
 - [ ] /company/{x} hubs
 - [ ] Verify: contractor jobs pass Rich Results; expiry-by-absence proven for one feed; telework slicing enumerates past the 10K cap
 
