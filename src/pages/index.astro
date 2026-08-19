@@ -1,17 +1,32 @@
 ---
-// Placeholder homepage — replaced in Phase B with the real job board.
+import Base from '../layouts/Base.astro'
+import JobList from '../components/JobList.astro'
+import { activeJobs } from '../lib/db.ts'
+
+const jobs = await activeJobs()
+const remote = jobs.filter((j) => j.location_policy === 'remote')
+const telework = jobs.filter((j) => j.location_policy === 'telework')
+const federalRemote = remote.filter((j) => j.employer_type === 'federal')
+const latest = jobs.slice(0, 20)
+const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 ---
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>GovRemoteJobs — Remote Government &amp; Contractor Jobs</title>
-    <meta name="description" content="Remote and telework-eligible US government and federal contractor jobs, updated daily. Launching soon." />
-  </head>
-  <body style="font-family: system-ui, sans-serif; max-width: 640px; margin: 6rem auto; padding: 0 1rem; line-height: 1.6;">
-    <h1>GovRemoteJobs</h1>
-    <p>Remote and telework-eligible US government &amp; federal contractor jobs — updated daily. Launching soon.</p>
-    <p style="color:#666;font-size:0.9rem;">Not affiliated with the US government or USAJOBS.</p>
-  </body>
-</html>
+<Base
+  title="GovRemoteJobs — Remote Government & Federal Contractor Jobs"
+  description={`${jobs.length} remote and telework-eligible US government and federal contractor jobs, updated daily from official sources. Every listing links to the original posting.`}
+>
+  <h1>Remote government &amp; contractor jobs, updated daily</h1>
+  <p style="color:var(--muted);max-width:620px;">
+    {jobs.length} open positions from official sources — the USAJOBS federal API and
+    contractors' own career feeds. As of {today}. Every listing links to the original posting.
+  </p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.8rem;margin:1.5rem 0;">
+    <a class="card job-row" href="/remote"><h3>{remote.length}</h3><div class="meta">Fully remote jobs</div></a>
+    <a class="card job-row" href="/telework"><h3>{telework.length}</h3><div class="meta">Telework-eligible jobs</div></a>
+    <a class="card job-row" href="/remote#federal"><h3>{federalRemote.length}</h3><div class="meta">Fully remote federal jobs — every one that exists</div></a>
+  </div>
+
+  <h2>Latest postings</h2>
+  <JobList jobs={latest} />
+  <p><a href="/remote">Browse all fully remote →</a> · <a href="/telework">all telework →</a></p>
+</Base>

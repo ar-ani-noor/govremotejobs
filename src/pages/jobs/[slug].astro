@@ -1,0 +1,49 @@
+---
+import Base from '../../layouts/Base.astro'
+import { activeJobs, kebab } from '../../lib/db.ts'
+import { salaryText, dateText, tierLabel, applyLabel, sourceLabel } from '../../lib/format.ts'
+import { jobPostingJsonLd } from '../../lib/jsonld.ts'
+
+export async function getStaticPaths() {
+  const jobs = await activeJobs()
+  return jobs.map((job) => ({ params: { slug: job.slug }, props: { job } }))
+}
+const { job } = Astro.props
+const salary = salaryText(job.salary_min, job.salary_max, job.salary_interval)
+const employerHub = job.employer_type === 'federal' ? `/agency/${kebab(job.employer)}` : `/company/${kebab(job.employer)}`
+const metaDesc = `${tierLabel(job.location_policy)} ${job.employer_type === 'federal' ? 'federal' : 'contractor'} job at ${job.employer}${salary ? `, ${salary}` : ''}. Apply on the original posting.`
+---
+<Base title={`${job.title} — ${job.employer} (Remote)`} description={metaDesc}>
+  <script type="application/ld+json" set:html={jobPostingJsonLd(job, Astro.site!.href.replace(/\/$/, ''))} slot="head" />
+  <p class="meta" style="margin-bottom:0.4rem;">
+    <span class={`badge ${job.location_policy}`}>{tierLabel(job.location_policy)}</span>
+    <span class={`badge ${job.employer_type}`}>{job.employer_type === 'federal' ? 'Federal' : 'Contractor'}</span>
+  </p>
+  <h1>{job.title}</h1>
+  <p class="meta" style="margin-bottom:1.2rem;">
+    <a href={employerHub}>{job.employer}</a>{job.department && ` · ${job.department}`}
+  </p>
+
+  <div class="card">
+    <dl class="facts">
+      {salary && <><dt>Salary</dt><dd>{salary}</dd></>}
+      {job.grade_low && <><dt>Grade</dt><dd>{job.grade_low}{job.grade_high && job.grade_high !== job.grade_low ? `–${job.grade_high}` : ''}</dd></>}
+      <dt>Work location</dt><dd>{tierLabel(job.location_policy)} (US)</dd>
+      {job.employment_type && <><dt>Schedule</dt><dd>{job.employment_type}</dd></>}
+      <dt>Posted</dt><dd>{dateText(job.posted_at)}</dd>
+      {job.closes_at && <><dt>Apply by</dt><dd>{dateText(job.closes_at)}</dd></>}
+      {job.category_name && <><dt>Category</dt><dd>{job.category_name}</dd></>}
+    </dl>
+    <p style="margin-top:1rem;">
+      <a class="btn" href={job.apply_url} rel="nofollow noopener" target="_blank">{applyLabel(job.employer_type)} →</a>
+    </p>
+    <p class="meta" style="margin-top:0.5rem;">Source: {sourceLabel(job.employer_type, job.employer)}. Applications happen on the original posting, not on this site.</p>
+  </div>
+
+  <article class="description" set:html={job.description_html} />
+
+  <div class="card" style="margin-top:1.5rem;">
+    <p><a class="btn" href={job.apply_url} rel="nofollow noopener" target="_blank">{applyLabel(job.employer_type)} →</a></p>
+    <p class="meta" style="margin-top:0.5rem;">More like this: <a href={employerHub}>{job.employer}</a> · <a href={`/${job.location_policy}`}>{tierLabel(job.location_policy)} jobs</a></p>
+  </div>
+</Base>

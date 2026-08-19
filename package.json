@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/build-manifests.mjs",
     "preview": "astro preview",
     "ingest": "node --experimental-strip-types scripts/ingest/index.ts"
   },

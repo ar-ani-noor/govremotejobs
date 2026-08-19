@@ -1,0 +1,23 @@
+---
+import Base from '../../layouts/Base.astro'
+import JobList from '../../components/JobList.astro'
+import { activeJobs } from '../../lib/db.ts'
+const jobs = (await activeJobs()).filter((j) => j.location_policy === 'remote')
+const federal = jobs.filter((j) => j.employer_type === 'federal')
+const contractor = jobs.filter((j) => j.employer_type === 'contractor')
+---
+<Base
+  title="Fully Remote Government & Contractor Jobs"
+  description={`${jobs.length} fully remote US government and federal contractor jobs — including all ${federal.length} fully remote federal positions currently open. Updated daily.`}
+  noindex={jobs.length === 0}
+>
+  <h1>Fully remote jobs</h1>
+  <p style="color:var(--muted);">Work-from-anywhere (US) positions. Not hybrid, not location-bound — see <a href="/telework">telework-eligible</a> for those.</p>
+
+  <h2 id="federal">Federal — every fully remote position that exists ({federal.length})</h2>
+  <p style="color:var(--muted);font-size:0.92rem;">Since the 2025 federal return-to-office order, fully remote federal postings are rare. This is the complete current list from the official USAJOBS API.</p>
+  <JobList jobs={federal} />
+
+  <h2>Federal contractors ({contractor.length})</h2>
+  <JobList jobs={contractor} />
+</Base>

@@ -1,0 +1,18 @@
+---
+import type { Job } from '../lib/db.ts'
+import { salaryText, dateText, tierLabel } from '../lib/format.ts'
+interface Props { jobs: Job[] }
+const { jobs } = Astro.props
+---
+{jobs.map((j) => (
+  <a class="card job-row" href={`/jobs/${j.slug}`}>
+    <h3>{j.title}</h3>
+    <div class="meta">
+      <span class={`badge ${j.location_policy}`}>{tierLabel(j.location_policy)}</span>
+      <span class={`badge ${j.employer_type}`}>{j.employer_type === 'federal' ? 'Federal' : 'Contractor'}</span>
+      {j.employer}
+      {salaryText(j.salary_min, j.salary_max, j.salary_interval) && ` · ${salaryText(j.salary_min, j.salary_max, j.salary_interval)}`}
+      {j.closes_at && ` · closes ${dateText(j.closes_at)}`}
+    </div>
+  </a>
+))}

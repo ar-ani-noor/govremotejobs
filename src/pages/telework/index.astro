@@ -1,0 +1,15 @@
+---
+import Base from '../../layouts/Base.astro'
+import JobList from '../../components/JobList.astro'
+import { activeJobs } from '../../lib/db.ts'
+const jobs = (await activeJobs()).filter((j) => j.location_policy === 'telework')
+---
+<Base
+  title="Telework-Eligible Federal Jobs"
+  description={`${jobs.length} telework-eligible US federal jobs — positions allowing part-time remote work. Updated daily from the official USAJOBS API.`}
+  noindex={jobs.length === 0}
+>
+  <h1>Telework-eligible federal jobs</h1>
+  <p style="color:var(--muted);">Positions that allow some remote work but are tied to a duty station — distinct from <a href="/remote">fully remote</a> roles.</p>
+  <JobList jobs={jobs} />
+</Base>

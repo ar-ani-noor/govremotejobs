@@ -1,0 +1,14 @@
+---
+import Base from '../layouts/Base.astro'
+import { activeJobs, kebab } from '../lib/db.ts'
+const jobs = (await activeJobs()).filter((j) => j.employer_type === 'contractor')
+const counts = new Map<string, number>()
+for (const j of jobs) counts.set(j.employer, (counts.get(j.employer) ?? 0) + 1)
+const rows = [...counts.entries()].sort((a, b) => b[1] - a[1])
+---
+<Base title="Federal Contractors Hiring Remote" description={`Federal contractors with open remote positions — ${jobs.length} jobs across ${rows.length} companies, updated daily from their public careers feeds.`}>
+  <h1>Federal contractors hiring remote</h1>
+  {rows.map(([name, n]) => (
+    <a class="card job-row" href={`/company/${kebab(name)}`}><h3>{name}</h3><div class="meta">{n} open remote position{n === 1 ? '' : 's'}</div></a>
+  ))}
+</Base>
