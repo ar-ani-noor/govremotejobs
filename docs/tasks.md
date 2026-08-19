@@ -17,11 +17,11 @@
 
 ## Phase A — Ingestion + DB, federal (1–2 d)
 
-- [ ] Migration: `jobs` + `ingest_runs` (RLS, anon SELECT on active, service_role grants — same migration)
-- [ ] USAJOBS adapter: remote pass + telework pass, Fields=Full, pagination + backoff
-- [ ] Normalize → immutable slug; diff by content_hash; upsert
-- [ ] Expiry: closes_at passed OR absent 2 runs → tombstone (ADR-0005)
-- [ ] `.github/workflows/daily-ingest.yml` + secrets; email-on-failure
+- [x] Migration: `jobs` + `ingest_runs` (RLS, anon SELECT on active + recently-closed for 410 manifest, service_role grants)
+- [x] USAJOBS adapter: remote pass live; telework pass behind INCLUDE_TELEWORK flag until the filter param is verified in Gate 1
+- [x] Normalize → immutable slug; diff by content_hash; upsert (reopened postings reactivate their slug)
+- [x] Expiry: closes_at passed OR absent ~40h → tombstone; 90-day purge (ADR-0005)
+- [~] `.github/workflows/daily-ingest.yml` written; secrets pending (needs USAJOBS key + deploy hook)
 - [ ] Verify: 3 green scheduled runs; spot-check salaries/close dates vs USAJOBS; observe one job transition to closed
 
 ## Phase B — Site + SEO pages (2–4 d)
