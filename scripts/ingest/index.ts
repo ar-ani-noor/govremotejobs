@@ -162,11 +162,13 @@ const idx = await notifyGoogle(
 )
 console.log('indexing:', JSON.stringify(idx))
 
-if (process.env.CF_DEPLOY_HOOK_URL && (allChanged.length || allClosed.length)) {
-  const res = await fetch(process.env.CF_DEPLOY_HOOK_URL, { method: 'POST' })
-  console.log('deploy hook:', res.status)
-} else if (!process.env.CF_DEPLOY_HOOK_URL) {
+if (!process.env.CF_DEPLOY_HOOK_URL) {
   console.log('deploy hook: CF_DEPLOY_HOOK_URL not set — skipping')
+} else if (allChanged.length === 0 && allClosed.length === 0) {
+  console.log('deploy hook: no changes this run — skipping (secret is set)')
+} else {
+  const res = await fetch(process.env.CF_DEPLOY_HOOK_URL, { method: 'POST' })
+  console.log('deploy hook: called, status', res.status)
 }
 
 if (!allOk) process.exit(1)

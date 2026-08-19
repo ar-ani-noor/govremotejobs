@@ -1,0 +1,16 @@
+name: trigger-deploy
+on: { workflow_dispatch: {} }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: POST to Cloudflare Pages deploy hook
+        run: |
+          if [ -z "$HOOK" ]; then echo "CF_DEPLOY_HOOK_URL not set"; exit 1; fi
+          CODE=$(curl -s -o /tmp/resp.json -w '%{http_code}' -X POST "$HOOK")
+          echo "HTTP status: $CODE"
+          cat /tmp/resp.json
+          [ "$CODE" -lt 300 ]
+        env:
+          HOOK: ${{ secrets.CF_DEPLOY_HOOK_URL }}
