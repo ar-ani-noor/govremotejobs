@@ -1,0 +1,70 @@
+# GovRemoteJobs — Task Board
+
+> Statuses: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` deferred
+> Decisions in [decisions/](decisions/). Session ritual in CLAUDE.md.
+
+## Phase 0 — Foundations + kill-switch checks (0.5–1 d)
+
+- [x] Domain purchased: govremotejobs.com (Imran, Cloudflare Registrar, 3 yrs, 2026-08-19)
+- [x] Repo scaffold + CLAUDE.md + task board + ADR-0001…0006
+- [ ] **MANUAL (Imran): request USAJOBS API key** — developer.usajobs.gov/apirequest (email + User-Agent = your email; key arrives by email)
+- [x] Supabase project created via CLI: `cvrtvlhdvwqttyzlyhxb` (us-east-1) + linked
+- [ ] GitHub repo ar-ani-noor/govremotejobs (public) + push
+- [ ] **MANUAL (Imran): Cloudflare Pages project** — connect repo, build `npm run build`, output `dist`; create Deploy Hook "daily-ingest"; attach govremotejobs.com
+- [ ] **GATE 1**: exact inventory — API count for RemoteIndicator=True and TeleworkEligible=True (needs API key). Sanity: thousands.
+- [ ] **GATE 2 (Imran)**: Keyword Planner volumes for "remote government jobs" cluster (free Google Ads account — reused later for AdSense). Sanity: ≥ ~10K/mo US.
+- [x] Astro hello-world builds locally (127ms); deploys on *.pages.dev
+
+## Phase A — Ingestion + DB, federal (1–2 d)
+
+- [ ] Migration: `jobs` + `ingest_runs` (RLS, anon SELECT on active, service_role grants — same migration)
+- [ ] USAJOBS adapter: remote pass + telework pass, Fields=Full, pagination + backoff
+- [ ] Normalize → immutable slug; diff by content_hash; upsert
+- [ ] Expiry: closes_at passed OR absent 2 runs → tombstone (ADR-0005)
+- [ ] `.github/workflows/daily-ingest.yml` + secrets; email-on-failure
+- [ ] Verify: 3 green scheduled runs; spot-check salaries/close dates vs USAJOBS; observe one job transition to closed
+
+## Phase B — Site + SEO pages (2–4 d)
+
+- [ ] Job detail template: facts box, full description, prominent "Apply on USAJOBS", JobPosting JSON-LD (TELECOMMUTE + applicantLocationRequirements; omit directApply)
+- [ ] Hubs: /agency/{x}, /category/{x}, /grade/entry-level-gs-5-7, /remote/ vs /telework/
+- [ ] Homepage + internal linking (≤3 clicks to anything) + disclaimer footer
+- [ ] Verify: Rich Results Test passes on 5 prod URLs; deploy-hook chain end-to-end; Lighthouse ≥90
+
+## Phase C — Index plumbing (1–2 d) ← minimum viable outcome
+
+- [ ] Split sitemaps (jobs ≤2,000/chunk, real lastmod) + robots.txt
+- [ ] Search Console property (DNS-verified) + submit sitemap
+- [ ] GCP service account → Search Console Owner → Indexing API in daily run (URL_UPDATED/URL_DELETED, 200/day quota)
+- [ ] 410 Pages Function + expired-slugs.json
+- [ ] Verify: GSC shows Indexed; Indexing API 200s; closed URL curls 410 and exits sitemap
+
+## Phase D — Contractors (3–5 d)
+
+- [ ] Greenhouse + Lever adapters (public JSON feeds)
+- [ ] registry/companies.json — start ~15 (Booz Allen, Leidos, MITRE, SAIC, CACI, GDIT, …)
+- [ ] Remote-only filter per adapter (location normalization)
+- [ ] /company/{x} hubs
+- [ ] SmartRecruiters + Workday adapters; registry → ~30
+- [ ] Verify: contractor jobs pass Rich Results; expiry-by-absence proven for one feed
+
+## Phase E — Editorial for AdSense (2–4 wk part-time)
+
+- [ ] ~20 guides (remote federal how-to, GS pay scale, remote vs telework, federal resume, timeline, agency guides, contractor guides, veterans' preference, benefits value)
+- [ ] privacy / terms / about / contact + site-wide disclaimer
+- [ ] Interlink guides ↔ hubs
+
+## Phase F — AdSense (0.5 d + review wait)
+
+- [ ] Apply (only after Phase E done + some organic traffic)
+- [ ] On approval: 2–3 manual units (under job header, in-guide, hub sidebar); never between facts and Apply; no Auto Ads
+- [ ] Verify: no CLS regression
+
+## ⏸ 3-month checkpoint (from Phase C completion)
+
+- [ ] Record decision as ADR: **invest** (states, more contractors/content) if GSC impressions grow w/w, ≥50% job pages indexed, any Jobs-box impressions · **diagnose** if indexed-but-zero-impressions (origin-wins risk → shift to hubs/guides) · **stop/coast** if <10% indexation, flat zero
+
+## Phase G — State feeds (post-checkpoint, 1–2 d each)
+
+- [ ] NY first (data.ny.gov Socrata feed) → adapter → /state/ny
+- [ ] Discovery tasks: CA, TX, WA (official feeds only; skip states without)

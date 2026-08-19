@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.astro/
+.env
+.env.*
+!.env.example
+supabase/.temp/
+.DS_Store
+.claude/settings.local.json
