@@ -37,13 +37,17 @@
 - [ ] Verify: first real job expiry → 410 (needs a job to actually close)
 - [ ] Later: /category/{x} and /grade/entry-level hubs (deferred — employer + tier hubs shipped first)
 
-## Phase C — Index plumbing (1–2 d) ← minimum viable outcome
+## Phase C — Index plumbing — COMPLETE 2026-08-19 ← minimum viable outcome
 
-- [ ] Split sitemaps (jobs ≤2,000/chunk, real lastmod) + robots.txt
-- [ ] Search Console property (DNS-verified) + submit sitemap
-- [ ] GCP service account → Search Console Owner → Indexing API in daily run (URL_UPDATED/URL_DELETED, 200/day quota)
-- [ ] 410 Pages Function + expired-slugs.json
-- [ ] Verify: GSC shows Indexed; Indexing API 200s; closed URL curls 410 and exits sitemap
+- [x] Split sitemaps (jobs ≤2,000/chunk, real lastmod) + robots.txt
+- [x] Search Console property verified (DNS, auto via Cloudflare authorization) + sitemap-index.xml submitted
+- [x] GCP project `govremotejobs` + service account `indexing-bot@govremotejobs.iam.gserviceaccount.com` + Search Console Owner access + Web Search Indexing API enabled
+- [x] `GOOGLE_INDEXING_SA_JSON` + `CF_DEPLOY_HOOK_URL` GitHub secrets — verified end-to-end: Indexing API sent 89/89 URLs on a real-change run; deploy hook confirmed HTTP 200 via dedicated test workflow
+- [x] Fixed silent-skip logging gap in the orchestrator (no-changes runs now log explicitly, not ambiguously)
+- [x] Added `trigger-deploy.yml` — manual "rebuild site now" utility, reusable going forward
+- [x] 410 Pages Function + expired-slugs.json (shipped with Phase B)
+- [ ] Follow-up: confirm GSC "Indexed" count over the next few days (crawl takes time — this is not a same-day signal)
+- [ ] Follow-up: verify a real job expiry → 410 once one naturally closes
 
 ## Phase A2 — Contractors + telework (pulled into critical path, ADR-0007) (3–5 d)
 
