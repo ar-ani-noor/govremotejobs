@@ -41,7 +41,8 @@
 
 ## Phase A2 — Contractors + telework (pulled into critical path, ADR-0007) (3–5 d)
 
-- [ ] Workday CXS adapter (primary — the primes all use Workday; Greenhouse/Lever deferred per ADR-0007)
+- [x] Workday CXS adapter — live run green: CACI 64, GDIT 40, Leidos 39, BAH 5; DB total 183 with dedupe verified
+- [ ] FOLLOW-UP: BAH yields only 5/~2,000 — their remote designation likely lives outside locationsText (separate field or description); investigate their posting format to recover inventory
 - [ ] registry/companies.json — validated: Leidos, Booz Allen, CACI, GDIT; discover SAIC/MAXIMUS/Peraton/MITRE endpoints; grow to ~15
 - [ ] Remote-only filter (locationsText/title match, then detail-fetch for description)
 - [ ] Telework tier: agency-sliced USAJOBS queries (Code List API for org codes), client-side TeleworkEligible filter
