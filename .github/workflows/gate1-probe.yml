@@ -1,0 +1,14 @@
+name: gate1-probe
+on: { workflow_dispatch: {} }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: node --experimental-strip-types scripts/probe/gate1.ts
+        env:
+          USAJOBS_API_KEY: ${{ secrets.USAJOBS_API_KEY }}
+          USAJOBS_USER_AGENT_EMAIL: ${{ secrets.USAJOBS_USER_AGENT_EMAIL }}
