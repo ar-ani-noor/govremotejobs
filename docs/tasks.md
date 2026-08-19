@@ -62,7 +62,7 @@
 ## Phase E — Editorial for AdSense (2–4 wk part-time)
 
 - [ ] ~20 guides (remote federal how-to, GS pay scale, remote vs telework, federal resume, timeline, agency guides, contractor guides, veterans' preference, benefits value)
-- [ ] privacy / terms / about / contact + site-wide disclaimer
+- [x] privacy / terms / about / contact pages shipped 2026-08-19 (site-wide footer disclaimer already existed since Phase B)
 - [ ] Interlink guides ↔ hubs
 
 ## Phase F — AdSense (0.5 d + review wait)

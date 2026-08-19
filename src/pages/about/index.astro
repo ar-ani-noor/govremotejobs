@@ -1,0 +1,28 @@
+---
+import Base from '../../layouts/Base.astro'
+---
+<Base
+  title="About GovRemoteJobs"
+  description="GovRemoteJobs lists remote and telework-eligible US government and federal contractor jobs, refreshed daily from official sources."
+>
+  <h1>About GovRemoteJobs</h1>
+  <p style="color:var(--muted);max-width:680px;">A focused board for one specific kind of job: remote and telework-eligible work with the US federal government and the contractors who do government work. Nothing else — no general job listings, no unrelated categories.</p>
+
+  <h2>Why this exists</h2>
+  <p style="max-width:680px;">Remote federal work shrank sharply after the 2025 return-to-office order — the roles that remain are genuinely hard to find, scattered across USAJOBS and dozens of individual contractor career sites. GovRemoteJobs pulls them into one place and keeps the list current, so you're not hunting through listings that closed weeks ago.</p>
+
+  <h2>Where the data comes from</h2>
+  <ul style="max-width:680px;line-height:1.8;">
+    <li><strong>Federal jobs</strong> — the official <a href="https://developer.usajobs.gov" target="_blank" rel="noopener">USAJOBS API</a>, refreshed daily. We separate fully remote positions from telework-eligible ones — they're not the same thing, and we don't blur the two.</li>
+    <li><strong>Contractor jobs</strong> — public career-site feeds published directly by employers who do federal contract work.</li>
+  </ul>
+  <p style="max-width:680px;">Every listing links straight to the original posting. We don't accept applications, host resumes on a server, or act as a recruiter — we're a finder, not a middleman. Closed positions are removed automatically, typically within a day of closing.</p>
+
+  <h2>The resume checker</h2>
+  <p style="max-width:680px;">Every job page includes a tool that compares your resume against that job's own listed requirements — entirely in your browser. Your resume text is never uploaded, sent to a server, or stored anywhere. It's a suggestion tool, not a guarantee of anything.</p>
+
+  <h2>What we're not</h2>
+  <p style="max-width:680px;">GovRemoteJobs is not affiliated with the US government, USAJOBS, or any employer listed on this site. We're an independent, privately run directory.</p>
+
+  <p style="margin-top:1.5rem;"><a href="/contact">Get in touch</a> if you have questions or feedback.</p>
+</Base>
