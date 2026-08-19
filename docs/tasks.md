@@ -56,7 +56,7 @@
 - [ ] registry/companies.json — validated: Leidos, Booz Allen, CACI, GDIT; discover SAIC/MAXIMUS/Peraton/MITRE endpoints; grow to ~15
 - [ ] Remote-only filter (locationsText/title match, then detail-fetch for description)
 - [x] Telework tier: 198 dept slices → 3,752 jobs inserted, zero errors; dedupe verified across all sources
-- [ ] /company/{x} hubs
+- [x] /company/{x} hubs (shipped in Phase B — companies.astro + company/[slug].astro)
 - [ ] Verify: contractor jobs pass Rich Results; expiry-by-absence proven for one feed; telework slicing enumerates past the 10K cap
 
 ## Phase E — Editorial for AdSense (2–4 wk part-time)
