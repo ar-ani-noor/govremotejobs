@@ -56,6 +56,16 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href.replace(/\/$/, ''
       .description ul { margin: 0.6rem 0 0.6rem 1.4rem; }
       footer.site { border-top: 1px solid var(--border); padding: 1.5rem 0 2.5rem; font-size: 0.85rem; color: var(--muted); }
       footer.site a { color: var(--muted); }
+      .resume-check textarea { width: 100%; min-height: 160px; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.95rem; resize: vertical; margin: 0.75rem 0; }
+      .resume-check .btn { margin-bottom: 0.5rem; border: none; cursor: pointer; font-size: 1rem; }
+      .kw-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0 1rem; }
+      .kw-chip { display: inline-block; font-size: 0.85rem; padding: 0.25rem 0.65rem; border-radius: 99px; }
+      .kw-chip.kw-found { background: #ecfdf5; color: var(--green); }
+      .kw-chip.kw-missing { background: #fef2f2; color: #b91c1c; }
+      .resume-score { font-weight: 700; font-size: 1.05rem; color: var(--navy); margin-bottom: 0.5rem; }
+      .resume-check h3 { font-size: 0.95rem; margin-top: 1rem; }
+      .resume-check ul { margin: 0.5rem 0 0 1.2rem; }
+      .resume-check ul li { margin-bottom: 0.4rem; }
     </style>
   </head>
   <body>

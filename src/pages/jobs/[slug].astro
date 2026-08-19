@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro'
 import { activeJobs, kebab } from '../../lib/db.ts'
 import { salaryText, dateText, tierLabel, applyLabel, sourceLabel } from '../../lib/format.ts'
 import { jobPostingJsonLd } from '../../lib/jsonld.ts'
+import { extractKeywords } from '../../lib/resume-match.ts'
 
 export async function getStaticPaths() {
   const jobs = await activeJobs()
@@ -12,6 +13,8 @@ const { job } = Astro.props
 const salary = salaryText(job.salary_min, job.salary_max, job.salary_interval)
 const employerHub = job.employer_type === 'federal' ? `/agency/${kebab(job.employer)}` : `/company/${kebab(job.employer)}`
 const metaDesc = `${tierLabel(job.location_policy)} ${job.employer_type === 'federal' ? 'federal' : 'contractor'} job at ${job.employer}${salary ? `, ${salary}` : ''}. Apply on the original posting.`
+const resumeKeywords = extractKeywords(job.description_html)
+const isFederal = job.employer_type === 'federal'
 ---
 <Base title={`${job.title} — ${job.employer} (Remote)`} description={metaDesc}>
   <script type="application/ld+json" set:html={jobPostingJsonLd(job, Astro.site!.href.replace(/\/$/, ''))} slot="head" />
@@ -41,6 +44,88 @@ const metaDesc = `${tierLabel(job.location_policy)} ${job.employer_type === 'fed
   </div>
 
   <article class="description" set:html={job.description_html} />
+
+  <section class="card resume-check" id="resume-check">
+    <h2 style="margin-top:0;">Check your resume against this job</h2>
+    <p class="meta">Rule-based, on-device analysis — your resume text is never sent to our servers or stored anywhere. Not a substitute for professional resume review.</p>
+    <form id="resume-check-form">
+      <textarea id="resume-text" rows="8" placeholder="Paste your resume text here…" aria-label="Your resume text"></textarea>
+      <button type="submit" class="btn">Analyze</button>
+    </form>
+    <div id="resume-check-results" hidden></div>
+  </section>
+
+  <script type="application/json" id="job-keywords" set:html={JSON.stringify({ keywords: resumeKeywords, isFederal })} />
+  <script>
+    import { analyzeResume } from '../../lib/resume-match.ts'
+
+    const dataEl = document.getElementById('job-keywords')
+    const payload = dataEl?.textContent ? JSON.parse(dataEl.textContent) : { keywords: [], isFederal: false }
+    const keywords: string[] = payload.keywords ?? []
+    const isFederal: boolean = payload.isFederal ?? false
+
+    const form = document.getElementById('resume-check-form')
+    const textarea = document.getElementById('resume-text') as HTMLTextAreaElement | null
+    const results = document.getElementById('resume-check-results')
+
+    function chip(text: string, cls: string): HTMLSpanElement {
+      const span = document.createElement('span')
+      span.className = `kw-chip ${cls}`
+      span.textContent = text
+      return span
+    }
+
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault()
+      if (!textarea || !results) return
+      const text = textarea.value.trim()
+      if (!text) return
+      const analysis = analyzeResume(text, keywords, isFederal)
+
+      results.innerHTML = ''
+      results.hidden = false
+
+      if (analysis.score >= 0) {
+        const p = document.createElement('p')
+        p.className = 'resume-score'
+        p.textContent = `Keyword match: ${analysis.score}% (${analysis.matched.length}/${keywords.length})`
+        results.appendChild(p)
+      }
+
+      if (analysis.matched.length) {
+        const h = document.createElement('h3')
+        h.textContent = 'Found in your resume'
+        results.appendChild(h)
+        const wrap = document.createElement('div')
+        wrap.className = 'kw-wrap'
+        analysis.matched.forEach((k) => wrap.appendChild(chip(k, 'kw-found')))
+        results.appendChild(wrap)
+      }
+
+      if (analysis.missing.length) {
+        const h = document.createElement('h3')
+        h.textContent = 'Consider adding (if applicable)'
+        results.appendChild(h)
+        const wrap = document.createElement('div')
+        wrap.className = 'kw-wrap'
+        analysis.missing.forEach((k) => wrap.appendChild(chip(k, 'kw-missing')))
+        results.appendChild(wrap)
+      }
+
+      if (analysis.tips.length) {
+        const h = document.createElement('h3')
+        h.textContent = 'Suggestions'
+        results.appendChild(h)
+        const ul = document.createElement('ul')
+        analysis.tips.forEach((t) => {
+          const li = document.createElement('li')
+          li.textContent = t
+          ul.appendChild(li)
+        })
+        results.appendChild(ul)
+      }
+    })
+  </script>
 
   <div class="card" style="margin-top:1.5rem;">
     <p><a class="btn" href={job.apply_url} rel="nofollow noopener" target="_blank">{applyLabel(job.employer_type)} →</a></p>
