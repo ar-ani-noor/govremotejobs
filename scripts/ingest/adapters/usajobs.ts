@@ -82,6 +82,7 @@ async function fetchPass(
   params: Record<string, string>,
   policy: 'remote' | 'telework',
   headers: Record<string, string>,
+  keep: (details: any) => boolean,
 ): Promise<NormalizedJob[]> {
   const out: NormalizedJob[] = []
   let page = 1
@@ -101,6 +102,7 @@ async function fetchPass(
     const data = await res.json()
     const items = data?.SearchResult?.SearchResultItems ?? []
     for (const item of items) {
+      if (!keep(item?.MatchedObjectDescriptor?.UserArea?.Details ?? {})) continue
       const job = normalize(item, policy)
       if (job) out.push(job)
     }
@@ -118,17 +120,32 @@ export function usajobsAdapter(): SourceAdapter {
   if (!key || !email) throw new Error('USAJOBS_API_KEY / USAJOBS_USER_AGENT_EMAIL not set')
   const headers = { Host: 'data.usajobs.gov', 'User-Agent': email, 'Authorization-Key': key }
 
+  const isTrue = (v: unknown) => v === true || String(v).toLowerCase() === 'true'
+
   return {
     source: 'usajobs',
     async fetchAll() {
-      const remote = await fetchPass({ RemoteIndicator: 'True' }, 'remote', headers)
+      const remote = await fetchPass({ RemoteIndicator: 'True' }, 'remote', headers,
+        (d) => isTrue(d.RemoteIndicator))
       const jobs = new Map(remote.map((j) => [j.source_id, j]))
-      // Telework tier is opt-in until the filter param is verified against the
-      // live API during Gate 1 (ADR-0004; an unfiltered pass would pull ALL
-      // federal jobs, which we must not do).
+
+      // Telework pass (Gate 1/ADR-0007): TeleworkEligible is NOT a server-side
+      // param and the API caps any query at 10K results, so slice the corpus
+      // by top-level agency code and filter client-side (~10% qualify).
       if (process.env.INCLUDE_TELEWORK === 'true') {
-        const telework = await fetchPass({ TeleworkEligible: 'True' }, 'telework', headers)
-        for (const j of telework) if (!jobs.has(j.source_id)) jobs.set(j.source_id, j)
+        const res = await fetch('https://data.usajobs.gov/api/codelist/agencysubelements', { headers })
+        if (!res.ok) throw new Error(`codelist ${res.status}`)
+        const values = (await res.json())?.CodeList?.[0]?.ValidValue ?? []
+        const depts = [...new Set(values.map((v: any) => String(v.Code ?? '').slice(0, 2)))]
+          .filter((c) => /^[A-Z]{2}$/.test(c as string)) as string[]
+        console.log(`[usajobs] telework pass: ${depts.length} department slices`)
+
+        for (const org of depts) {
+          const slice = await fetchPass({ Organization: org }, 'telework', headers,
+            (d) => isTrue(d.TeleworkEligible) && !isTrue(d.RemoteIndicator))
+          for (const j of slice) if (!jobs.has(j.source_id)) jobs.set(j.source_id, j)
+          await sleep(1000)
+        }
       }
       return [...jobs.values()]
     },
