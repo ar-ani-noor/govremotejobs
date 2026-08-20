@@ -17,16 +17,17 @@ import Base from '../../layouts/Base.astro'
       </div>
       <div class="filter-group">
         <h3>Category</h3>
-        <div id="filter-category"></div>
+        <div id="filter-category" class="filter-scroll"></div>
       </div>
       <div class="filter-group">
         <h3>Agency / Company</h3>
-        <div id="filter-employer"></div>
+        <div id="filter-employer" class="filter-scroll"></div>
       </div>
       <div class="filter-group">
         <h3>Salary</h3>
         <label class="salary-label">Min <input type="number" id="salary-min" min="0" step="1000" placeholder="0" /></label>
         <label class="salary-label">Max <input type="number" id="salary-max" min="0" step="1000" placeholder="No max" /></label>
+        <p class="meta" style="font-size:0.78rem;margin-top:0.35rem;">Hourly pay is compared as an annual figure (× 2,087 hours).</p>
       </div>
     </aside>
     <div class="search-results" id="results">
@@ -38,106 +39,394 @@ import Base from '../../layouts/Base.astro'
     .search-layout { display: grid; grid-template-columns: 220px 1fr; gap: 1.5rem; margin-top: 1rem; }
     .filter-group { margin-bottom: 1.25rem; }
     .filter-group h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin-bottom: 0.5rem; }
-    .filter-option { display: block; font-size: 0.9rem; margin-bottom: 0.35rem; cursor: pointer; }
-    .filter-option input { margin-right: 0.4rem; }
+    /* :global() on every selector below that targets a node this page builds in
+       JS. Astro scopes styles with a [data-astro-cid-*] attribute it can only
+       stamp onto elements present in the template, so scoped rules never match
+       createElement()'d nodes — .filter-option labels were silently unstyled
+       (inline, not one-per-line). These class names appear nowhere else. */
+    :global(.filter-option) { display: block; font-size: 0.9rem; margin-bottom: 0.35rem; cursor: pointer; }
+    :global(.filter-option input) { margin-right: 0.4rem; }
+    /* Category (261 values) and Agency/Company (277 values) would otherwise
+       render a ~15,000px-tall sidebar. Counts are sorted descending, so the
+       useful options sit above the fold of this box. */
+    .filter-scroll { max-height: 260px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--border); border-radius: 6px; padding: 0.45rem 0.55rem; background: var(--card); }
+    :global(.filter-option.is-empty) { opacity: 0.5; }
     .salary-label { display: block; font-size: 0.85rem; margin-bottom: 0.4rem; }
     .salary-label input { width: 100%; padding: 0.3rem 0.5rem; border: 1px solid var(--border); border-radius: 6px; margin-top: 0.2rem; }
+    :global(.result-count) { margin-bottom: 0.75rem; }
+    :global(.load-more) { border: none; cursor: pointer; font-size: 0.95rem; margin-top: 0.5rem; }
+    :global(.load-more[disabled]) { opacity: 0.6; cursor: default; }
     @media (max-width: 640px) { .search-layout { grid-template-columns: 1fr; } }
   </style>
 
   <script>
     import { tierLabel } from '../../lib/format.ts'
 
-    type PagefindFilters = Record<string, string[]>
+    type FilterCounts = Record<string, Record<string, number>>
 
-    let pagefind: any
-    const activeFilters: PagefindFilters = {}
+    // Render 20 results at a time. Rendering the unbounded set froze the tab for
+    // 10-20s and pulled ~9.7MB of fragments on a single "Federal" click.
+    const PAGE_SIZE = 20
+    // How many results to inspect per page when a salary range is set. The
+    // salary bound lives in Pagefind meta, not in the index, so it can only be
+    // applied to fetched fragments — this caps the work per click when very few
+    // results match the range.
+    const SCAN_LIMIT = 200
+    const DEBOUNCE_MS = 250
+
+    const FILTER_GROUPS = [
+      { containerId: 'filter-location', key: 'location' },
+      { containerId: 'filter-type', key: 'type' },
+      { containerId: 'filter-category', key: 'category' },
+      { containerId: 'filter-employer', key: 'employer' },
+    ]
+
+    let pagefindPromise: Promise<any> | null = null
+    let baseFilterCounts: FilterCounts = {}
+    const activeFilters: Record<string, string[]> = {}
     let salaryMin: number | null = null
     let salaryMax: number | null = null
 
-    async function loadPagefind() {
-      if (pagefind) return pagefind
-      // @ts-ignore -- generated at build time by `npx pagefind`, not present in dev.
-      // Hidden from Vite's static import analysis via Function() indirection — a
-      // plain `import('/pagefind/pagefind.js')` gets wrapped in Vite's
-      // __vitePreload() helper, which throws `__VITE_PRELOAD__ is not defined`
-      // because this path doesn't exist until Pagefind's build step runs, after
-      // Vite's analysis pass.
-      const dynamicImport = new Function('specifier', 'return import(specifier)')
-      pagefind = await dynamicImport('/pagefind/pagefind.js')
-      await pagefind.init()
-      return pagefind
+    // Monotonic token: every search increments it, and every async continuation
+    // re-checks it, so a slow early keystroke can never overwrite a later one.
+    let requestToken = 0
+    let allResults: any[] = []
+    let pending: any[] = [] // fetched + salary-matching, not yet rendered
+    let cursor = 0 // how far into allResults we have fetched
+    let shown = 0
+
+    function loadPagefind(): Promise<any> {
+      if (!pagefindPromise) {
+        pagefindPromise = (async () => {
+          // @ts-ignore -- generated at build time by `npx pagefind`, not present in dev.
+          // Hidden from Vite's static import analysis via Function() indirection — a
+          // plain `import('/pagefind/pagefind.js')` gets wrapped in Vite's
+          // __vitePreload() helper, which throws `__VITE_PRELOAD__ is not defined`
+          // because this path doesn't exist until Pagefind's build step runs, after
+          // Vite's analysis pass.
+          const dynamicImport = new Function('specifier', 'return import(specifier)')
+          const pf = await dynamicImport('/pagefind/pagefind.js')
+          await pf.init()
+          // Loading the full filter list once seeds the sidebar before the first
+          // search AND is what makes Pagefind return per-search filter counts on
+          // every later search() call.
+          baseFilterCounts = (await pf.filters()) ?? {}
+          return pf
+        })().catch((err) => {
+          pagefindPromise = null // let a later interaction retry
+          throw err
+        })
+      }
+      return pagefindPromise
+    }
+
+    /* ---------- filters ---------- */
+
+    function renderFilters(counts: FilterCounts) {
+      for (const group of FILTER_GROUPS) {
+        renderFilterGroup(group.containerId, group.key, counts[group.key] ?? {})
+      }
     }
 
     function renderFilterGroup(containerId: string, filterKey: string, values: Record<string, number>) {
       const container = document.getElementById(containerId)
       if (!container) return
+      const checked = new Set(activeFilters[filterKey] ?? [])
+
+      // Re-rendering blows away focus and scroll position; a keyboard user
+      // tabbing through 277 agencies would lose their place on every change.
+      const focused = document.activeElement as HTMLElement | null
+      const refocus =
+        focused && focused.dataset && focused.dataset.filterKey === filterKey
+          ? focused.dataset.filterValue ?? null
+          : null
+      const scrollTop = container.scrollTop
+
+      const entries = Object.entries(values).sort((a, b) => {
+        // Checked values stay pinned at the top so the box you just clicked
+        // doesn't jump; everything else is most-results-first.
+        const aChecked = checked.has(a[0]) ? 1 : 0
+        const bChecked = checked.has(b[0]) ? 1 : 0
+        if (aChecked !== bChecked) return bChecked - aChecked
+        if (b[1] !== a[1]) return b[1] - a[1]
+        return a[0].localeCompare(b[0])
+      })
+
       container.innerHTML = ''
-      for (const [value, count] of Object.entries(values)) {
+      if (entries.length === 0) {
+        const empty = document.createElement('p')
+        empty.className = 'meta'
+        empty.textContent = 'No options'
+        container.appendChild(empty)
+        return
+      }
+
+      const frag = document.createDocumentFragment()
+      for (const [value, count] of entries) {
         const label = document.createElement('label')
-        label.className = 'filter-option'
+        label.className = count === 0 ? 'filter-option is-empty' : 'filter-option'
         const checkbox = document.createElement('input')
         checkbox.type = 'checkbox'
-        checkbox.checked = (activeFilters[filterKey] ?? []).includes(value)
+        checkbox.checked = checked.has(value)
+        checkbox.dataset.filterKey = filterKey
+        checkbox.dataset.filterValue = value
         checkbox.addEventListener('change', () => {
           const current = new Set(activeFilters[filterKey] ?? [])
           if (checkbox.checked) current.add(value)
           else current.delete(value)
           activeFilters[filterKey] = [...current]
-          runSearch()
+          runSearchNow()
         })
         label.appendChild(checkbox)
         const text = filterKey === 'location' ? tierLabel(value) : value
-        label.appendChild(document.createTextNode(` ${text} (${count})`))
-        container.appendChild(label)
+        label.appendChild(document.createTextNode(` ${text} (${count.toLocaleString()})`))
+        frag.appendChild(label)
+      }
+      container.appendChild(frag)
+      container.scrollTop = scrollTop
+
+      if (refocus !== null) {
+        const escaped = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(refocus) : refocus.replace(/"/g, '\\"')
+        const next = container.querySelector(`input[data-filter-value="${escaped}"]`) as HTMLInputElement | null
+        next?.focus()
       }
     }
 
-    async function renderResults(results: any[]) {
-      const container = document.getElementById('results')
-      if (!container) return
-      if (results.length === 0) {
-        container.innerHTML = '<p class="meta">No jobs match your search and filters.</p>'
-        return
-      }
-      const items = await Promise.all(results.map((r: any) => r.data()))
-      const filtered = items.filter((item: any) => {
-        const min = item.meta?.salary_min ? Number(item.meta.salary_min) : null
-        const max = item.meta?.salary_max ? Number(item.meta.salary_max) : null
-        if (salaryMin !== null && max !== null && max < salaryMin) return false
-        if (salaryMax !== null && min !== null && min > salaryMax) return false
-        return true
-      })
-      if (filtered.length === 0) {
-        container.innerHTML = '<p class="meta">No jobs match your search, filters, and salary range.</p>'
-        return
-      }
-      container.innerHTML = filtered
-        .map((item: any) => {
-          const url = item.url.replace(/\/$/, '') // Pagefind indexes with a trailing slash, but trailingSlash:'never' only serves the no-slash form
-          return `
-        <a class="job-row card" href="${url}">
-          <h3>${item.meta?.title ?? item.url}</h3>
-          <p class="meta">${item.excerpt}</p>
-        </a>
-      `
-        })
-        .join('')
+    /* ---------- results ---------- */
+
+    function resultsContainer(): HTMLElement | null {
+      return document.getElementById('results')
     }
+
+    function showMessage(html: string) {
+      const container = resultsContainer()
+      if (container) container.innerHTML = html
+    }
+
+    function showSearching() {
+      showMessage('<p class="meta">Searching…</p>')
+    }
+
+    function showError() {
+      showMessage(
+        '<p class="meta">Search is temporarily unavailable — browse <a href="/remote">Fully Remote</a> or <a href="/telework">Telework</a> jobs instead.</p>'
+      )
+    }
+
+    function salaryActive(): boolean {
+      return salaryMin !== null || salaryMax !== null
+    }
+
+    function matchesSalary(item: any): boolean {
+      if (!salaryActive()) return true
+      const rawMin = Number(item.meta?.salary_min)
+      const rawMax = Number(item.meta?.salary_max)
+      const min = Number.isFinite(rawMin) ? rawMin : Number.isFinite(rawMax) ? rawMax : null
+      const max = Number.isFinite(rawMax) ? rawMax : min
+      // Jobs that publish no salary are never excluded by a salary range.
+      if (min === null || max === null) return true
+      if (salaryMin !== null && max < salaryMin) return false
+      if (salaryMax !== null && min > salaryMax) return false
+      return true
+    }
+
+    function hasMore(): boolean {
+      return pending.length > 0 || cursor < allResults.length
+    }
+
+    // Fetches forward through allResults until PAGE_SIZE salary-matching items
+    // are buffered (or the results / scan budget run out). Returns null if a
+    // newer search started while we were awaiting.
+    async function collectPage(token: number): Promise<any[] | null> {
+      let scanned = 0
+      while (pending.length < PAGE_SIZE && cursor < allResults.length && scanned < SCAN_LIMIT) {
+        const batch = allResults.slice(cursor, cursor + PAGE_SIZE)
+        cursor += batch.length
+        scanned += batch.length
+        const items = await Promise.all(batch.map((r: any) => r.data()))
+        if (token !== requestToken) return null
+        for (const item of items) if (matchesSalary(item)) pending.push(item)
+      }
+      return pending.splice(0, PAGE_SIZE)
+    }
+
+    function buildShell(): HTMLElement | null {
+      const container = resultsContainer()
+      if (!container) return null
+      container.innerHTML = ''
+      const count = document.createElement('p')
+      count.className = 'meta result-count'
+      count.id = 'result-count'
+      const list = document.createElement('div')
+      list.id = 'result-list'
+      container.appendChild(count)
+      container.appendChild(list)
+      return list
+    }
+
+    function appendCards(list: HTMLElement, items: any[]) {
+      const frag = document.createDocumentFragment()
+      for (const item of items) {
+        // Pagefind indexes with a trailing slash, but trailingSlash:'never' only
+        // serves the no-slash form.
+        const url = String(item.url ?? '').replace(/\/$/, '')
+        const card = document.createElement('a')
+        card.className = 'job-row card'
+        card.href = url
+        const title = document.createElement('h3')
+        title.textContent = item.meta?.title ?? url // textContent, so titles with & or < can't break the markup
+        const excerpt = document.createElement('p')
+        excerpt.className = 'meta'
+        excerpt.innerHTML = item.excerpt ?? '' // Pagefind-generated HTML (<mark> highlights)
+        card.appendChild(title)
+        card.appendChild(excerpt)
+        frag.appendChild(card)
+      }
+      list.appendChild(frag)
+    }
+
+    function updateCount() {
+      const el = document.getElementById('result-count')
+      if (!el) return
+      const total = allResults.length
+      const jobs = (n: number) => `${n.toLocaleString()} job${n === 1 ? '' : 's'}`
+      if (shown === 0) {
+        el.textContent =
+          total === 0
+            ? 'No jobs match your search and filters.'
+            : hasMore()
+              ? `No jobs in the first ${cursor.toLocaleString()} matches fit your salary range — load more to keep looking.`
+              : 'No jobs match your search, filters, and salary range.'
+        return
+      }
+      if (!salaryActive()) {
+        el.textContent = hasMore() ? `${jobs(total)} found — showing first ${shown.toLocaleString()}` : `${jobs(total)} found`
+        return
+      }
+      // With a salary range set, the true total is unknowable without fetching
+      // every fragment — say exactly how far we have looked instead of implying it.
+      el.textContent = hasMore()
+        ? `${jobs(shown)} in your salary range, from the first ${cursor.toLocaleString()} of ${total.toLocaleString()} matches`
+        : `${jobs(shown)} in your salary range`
+    }
+
+    function updateLoadMore(token: number) {
+      const container = resultsContainer()
+      const existing = document.getElementById('load-more') as HTMLButtonElement | null
+      if (!hasMore()) {
+        existing?.remove()
+        return
+      }
+      const button = existing ?? document.createElement('button')
+      if (!existing) {
+        button.id = 'load-more'
+        button.type = 'button'
+        button.className = 'btn load-more'
+        button.addEventListener('click', () => loadMore(token))
+        container?.appendChild(button)
+      }
+      button.disabled = false
+      button.textContent = 'Load more'
+    }
+
+    async function loadMore(token: number) {
+      if (token !== requestToken) return
+      const button = document.getElementById('load-more') as HTMLButtonElement | null
+      if (button) {
+        button.disabled = true
+        button.textContent = 'Loading…'
+      }
+      try {
+        const page = await collectPage(token)
+        if (page === null || token !== requestToken) return
+        const list = document.getElementById('result-list')
+        if (!list) return
+        appendCards(list, page)
+        shown += page.length
+        updateCount()
+        updateLoadMore(token)
+      } catch (err) {
+        console.error('[search] Failed to load more results', err)
+        if (token === requestToken) showError()
+      }
+    }
+
+    /* ---------- search ---------- */
 
     async function runSearch() {
-      const pf = await loadPagefind()
+      const token = ++requestToken // invalidates any in-flight search or "Load more"
       const input = document.getElementById('search-input-page') as HTMLInputElement | null
-      const query = input?.value ?? ''
+      const query = (input?.value ?? '').trim()
 
-      const filterOptions = await pf.filters()
-      renderFilterGroup('filter-location', 'location', filterOptions.location ?? {})
-      renderFilterGroup('filter-type', 'type', filterOptions.type ?? {})
-      renderFilterGroup('filter-category', 'category', filterOptions.category ?? {})
-      renderFilterGroup('filter-employer', 'employer', filterOptions.employer ?? {})
+      // Nothing to search on (e.g. the user cleared the box) — go back to the
+      // idle prompt rather than running a whole-index query.
+      const anyFilter = FILTER_GROUPS.some((g) => (activeFilters[g.key] ?? []).length > 0)
+      if (!query && !anyFilter && !salaryActive()) {
+        allResults = []
+        pending = []
+        cursor = 0
+        shown = 0
+        showMessage('<p class="meta">Enter a search term or apply filters to see jobs.</p>')
+        loadPagefind()
+          .then(() => {
+            if (token === requestToken) renderFilters(baseFilterCounts)
+          })
+          .catch((err) => {
+            console.error('[search] Failed to load Pagefind', err)
+            if (token === requestToken) showError()
+          })
+        return
+      }
 
-      const search = await pf.search(query || null, { filters: activeFilters })
-      await renderResults(search.results)
+      showSearching()
+      try {
+        const pf = await loadPagefind()
+        if (token !== requestToken) return
+        const search = await pf.search(query || null, { filters: activeFilters })
+        if (token !== requestToken) return
+
+        // search.filters is scoped to this result set ("how many results if I
+        // also check this"); pf.filters() would report whole-index counts.
+        const counts: FilterCounts = {}
+        for (const group of FILTER_GROUPS) {
+          counts[group.key] = search.filters?.[group.key] ?? baseFilterCounts[group.key] ?? {}
+        }
+        renderFilters(counts)
+
+        allResults = search.results ?? []
+        pending = []
+        cursor = 0
+        shown = 0
+        const list = buildShell()
+        if (!list) return
+        const page = await collectPage(token)
+        if (page === null || token !== requestToken) return
+        appendCards(list, page)
+        shown = page.length
+        updateCount()
+        updateLoadMore(token)
+      } catch (err) {
+        console.error('[search] Search failed', err)
+        if (token === requestToken) showError()
+      }
+    }
+
+    let debounceTimer: number | undefined
+
+    function scheduleSearch() {
+      if (debounceTimer !== undefined) clearTimeout(debounceTimer)
+      debounceTimer = window.setTimeout(() => {
+        debounceTimer = undefined
+        runSearch()
+      }, DEBOUNCE_MS)
+    }
+
+    function runSearchNow() {
+      if (debounceTimer !== undefined) {
+        clearTimeout(debounceTimer)
+        debounceTimer = undefined
+      }
+      runSearch()
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -152,31 +441,30 @@ import Base from '../../layouts/Base.astro'
         headerInput.value = q // client-side URL read — Astro.url.searchParams is meaningless in a static build
         headerInput.closest('form')?.addEventListener('submit', (e) => {
           e.preventDefault()
-          runSearch()
+          runSearchNow()
         })
-        headerInput.addEventListener('input', () => runSearch())
+        headerInput.addEventListener('input', () => scheduleSearch())
       }
 
       const minInput = document.getElementById('salary-min') as HTMLInputElement
       const maxInput = document.getElementById('salary-max') as HTMLInputElement
       minInput?.addEventListener('input', () => {
         salaryMin = minInput.value ? Number(minInput.value) : null
-        runSearch()
+        scheduleSearch()
       })
       maxInput?.addEventListener('input', () => {
         salaryMax = maxInput.value ? Number(maxInput.value) : null
-        runSearch()
+        scheduleSearch()
       })
 
-      if (q) runSearch()
+      if (q) runSearchNow()
       else {
-        loadPagefind().then(async (pf) => {
-          const filterOptions = await pf.filters()
-          renderFilterGroup('filter-location', 'location', filterOptions.location ?? {})
-          renderFilterGroup('filter-type', 'type', filterOptions.type ?? {})
-          renderFilterGroup('filter-category', 'category', filterOptions.category ?? {})
-          renderFilterGroup('filter-employer', 'employer', filterOptions.employer ?? {})
-        })
+        loadPagefind()
+          .then(() => renderFilters(baseFilterCounts))
+          .catch((err) => {
+            console.error('[search] Failed to load Pagefind', err)
+            showError()
+          })
       }
     })
   </script>
