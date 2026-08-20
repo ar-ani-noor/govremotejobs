@@ -65,6 +65,14 @@
 - [x] privacy / terms / about / contact pages shipped 2026-08-19 (site-wide footer disclaimer already existed since Phase B)
 - [x] Interlink guides <-> hubs: every guide links to relevant /agency, /company, or /category pages; verified 0 broken links across all 21 files. Added /category/{x} + /categories hub pages (previously deferred) so guides had real non-broken destinations to link to.
 
+## Phase E2 — Site search & filters — SHIPPED 2026-08-20
+
+- [x] Pagefind-powered search bar (site-wide header) + `/search` results page with filters: Remote/Telework, Federal/Contractor/State, Category, Agency/Company, salary range. Zero runtime DB access preserved — static build-time index, client-side WASM search. See ADR-0010.
+- [x] Index scoped to job pages only via `data-pagefind-body` (3,900 pages indexed, was polluted with guides/hubs/agency pages at 4,472 before a final-review fix)
+- [x] Result pagination (20/page, "Load more"), debounced input, live-updating filter counts, error-state fallback, hourly-salary annualization (×2087) so the salary filter doesn't silently exclude hourly-paid jobs
+- [x] Verified via 5 rounds of live browser testing (Playwright + system Chrome — the `claude-in-chrome` extension wasn't available in this environment): initial pass caught a Vite dynamic-import crash that made the whole feature inert in the shipped build; 2nd pass caught a client-side query-string bug + trailing-slash 404s; final review (opus) caught the pagination/salary/scoping issues above; all fixed and re-verified clean, 32/32 checks passing
+- [x] Merged to main 2026-08-20 (8 commits, `e07ebb9`..`30fa0c4`)
+
 ## Phase F — AdSense (0.5 d + review wait)
 
 - [ ] Apply (only after Phase E done + some organic traffic)
