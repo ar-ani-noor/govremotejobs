@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/build-manifests.mjs",
+    "build": "astro build && node scripts/build-manifests.mjs && npx pagefind --site dist",
     "preview": "astro preview",
     "ingest": "node --experimental-strip-types scripts/ingest/index.ts"
   },
   "devDependencies": {
-    "astro": "^7.2.4"
+    "astro": "^7.2.4",
+    "pagefind": "^1.5.2"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
