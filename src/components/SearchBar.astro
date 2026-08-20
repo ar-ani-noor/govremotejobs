@@ -1,0 +1,7 @@
+---
+const q = Astro.url.searchParams.get('q') ?? ''
+---
+<form action="/search" method="get" class="header-search" role="search">
+  <input type="search" name="q" value={q} placeholder="Search jobs…" aria-label="Search jobs" />
+  <button type="submit" aria-label="Search">Search</button>
+</form>

@@ -1,4 +1,5 @@
 ---
+import SearchBar from '../components/SearchBar.astro'
 interface Props {
   title: string
   description: string
@@ -33,6 +34,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href.replace(/\/$/, ''
       .logo span { color: #67e8f9; }
       nav.site a { color: #cbd5e1; text-decoration: none; margin-left: 1rem; font-size: 0.95rem; }
       nav.site a:hover { color: #fff; }
+      .header-search { display: flex; gap: 0.4rem; }
+      .header-search input[type="search"] { padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid transparent; font-size: 0.9rem; min-width: 160px; }
+      .header-search button { padding: 0.4rem 0.8rem; border-radius: 6px; border: none; background: var(--teal); color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+      .header-search button:hover { background: var(--teal-dark); }
       main { padding: 2rem 0 3rem; }
       h1 { font-size: 1.7rem; line-height: 1.3; color: var(--navy); margin-bottom: 0.5rem; }
       h2 { font-size: 1.2rem; color: var(--navy); margin: 1.5rem 0 0.5rem; }
@@ -79,6 +84,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href.replace(/\/$/, ''
           <a href="/companies">Contractors</a>
           <a href="/guides">Guides</a>
         </nav>
+        <SearchBar />
       </div>
     </header>
     <main>
