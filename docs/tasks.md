@@ -71,7 +71,8 @@
 - [x] Index scoped to job pages only via `data-pagefind-body` (3,900 pages indexed, was polluted with guides/hubs/agency pages at 4,472 before a final-review fix)
 - [x] Result pagination (20/page, "Load more"), debounced input, live-updating filter counts, error-state fallback, hourly-salary annualization (×2087) so the salary filter doesn't silently exclude hourly-paid jobs
 - [x] Verified via 5 rounds of live browser testing (Playwright + system Chrome — the `claude-in-chrome` extension wasn't available in this environment): initial pass caught a Vite dynamic-import crash that made the whole feature inert in the shipped build; 2nd pass caught a client-side query-string bug + trailing-slash 404s; final review (opus) caught the pagination/salary/scoping issues above; all fixed and re-verified clean, 32/32 checks passing
-- [x] Merged to main 2026-08-20 (8 commits, `e07ebb9`..`30fa0c4`)
+- [x] Merged to main 2026-08-20 (8 commits, `e07ebb9`..`30fa0c4`), plus post-merge review fixes (`903ff69`: OR filter groups, sibling counts, salary edge cases, resilient load-more)
+- [x] Deployed to production 2026-08-20. **Ops gotcha found live**: the Cloudflare rate-limiting rule (25 req/10s/IP, created same day for bot mitigation) throttled Pagefind's own index-chunk bursts → 429s → "invalid gzip data" → search dead in prod despite all localhost tests passing. Fixed by scoping the rule's expression to `not starts_with(http.request.uri.path, "/pagefind/")`. If that rule is ever tightened or recreated, keep the /pagefind/ exemption or search breaks again.
 
 ## Phase F — AdSense (0.5 d + review wait)
 
