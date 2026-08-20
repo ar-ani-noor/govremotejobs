@@ -12,7 +12,7 @@
 - [x] GitHub repo ar-ani-noor/govremotejobs (public), pushed and active
 - [x] Cloudflare Pages project live at govremotejobs.com; deploy hook verified firing (HTTP 200) on every data-changing run
 - [x] **GATE 1 (2026-08-19)**: remote federal = 35 (!), telework ≈10.2% of ≥10K corpus ≈ 1,000+, Workday contractor feeds validated (Leidos 412 / BAH ~2,000 / CACI 224 / GDIT 282 loose matches). Verdict: proceed re-weighted — see ADR-0007.
-- [ ] **GATE 2 (Imran)**: Keyword Planner volumes for "remote government jobs" cluster (free Google Ads account — reused later for AdSense). Sanity: ≥ ~10K/mo US.
+- [x] **GATE 2 (2026-08-20)**: Keyword Planner volumes for "remote government jobs" cluster — PASS. Core 6 terms: "remote government jobs" 1K–10K, "federal remote jobs" 1K–10K, "usajobs remote" 1K–10K, "government jobs from home" 100–1K, "remote federal government jobs" 100–1K, "telework federal jobs" 10–100 (combined range ~3.2K–32K/mo, midpoint clears ≥10K/mo threshold). 315 related keyword ideas surfaced, incl. "fema remote jobs" 1K–10K (+900% YoY). Verdict: proceed.
 - [x] Astro hello-world builds locally (127ms); deploys on *.pages.dev
 
 ## Phase A — Ingestion + DB, federal (1–2 d)
@@ -32,7 +32,7 @@
 - [x] Post-build manifests: chunked job sitemaps (real lastmod), hub sitemap, sitemap index, expired-slugs.json, robots.txt
 - [x] 410 Pages Function for expired slugs
 - [x] LIVE: govremotejobs.com serving 4,077 pages (3,935 jobs); JSON-LD verified in production
-- [ ] Verify: Google Rich Results Test on 5 prod URLs (manual, browser) — still genuinely open, needs a human to run search.google.com/test/rich-results
+- [x] Verify: Google Rich Results Test on 5 prod URLs (2026-08-20) — PASS on all 5 (3 federal, 2 contractor): "1 valid item detected" / eligible for rich results on each. Non-critical (optional-field) issues noted, not blocking.
 - [x] Deploy-hook chain verified firing (HTTP 200) — confirmed multiple times same-day, including the BAH fix run
 - [ ] Verify: first real job expiry → 410 (needs a job to actually close)
 - [x] /category/{x} + /categories hubs shipped (Phase E, 2026-08-19). /grade/entry-level still deferred, not yet planned.
@@ -53,7 +53,7 @@
 
 - [x] Workday CXS adapter — live run green: CACI 64, GDIT 40, Leidos 39, BAH 5; DB total 183 with dedupe verified
 - [x] RESOLVED 2026-08-19: root-caused and fixed. BAH's 5 were false positives (title-match on 'Remote Sensing'/'Secure Remote Access', unrelated business terms); honest count is 0 — BAH has no 'Remote' location value anywhere in their system. Fix also recovered +30 real CACI jobs and +1 Leidos from a separate multi-location blind spot. See ADR-0006 update.
-- [ ] registry/companies.json — validated: Leidos, Booz Allen, CACI, GDIT; discover SAIC/MAXIMUS/Peraton/MITRE endpoints; grow to ~15
+- [~] registry/companies.json — 5/15: Leidos, Booz Allen, CACI, GDIT, **Guidehouse (added 2026-08-20, 199 remote-matching jobs confirmed live)**. SAIC/MAXIMUS/Peraton/MITRE all confirmed NOT Workday (ttcportals/Avature/iCIMS/Phenom People respectively) — dead ends for this adapter. Phenom People adapter (would've unlocked MITRE/ICF/Parsons/RTX) investigated 2026-08-20 and **rejected** — see ADR-0009: MITRE has zero remote jobs (confirmed via site's own facet counts), ICF exposes no remote/onsite signal at all. Avature (MAXIMUS, ManTech, Jacobs — 3 hits) and iCIMS (Peraton, V2X — 2 hits) clusters remain unexplored if contractor growth resumes later.
 - [x] Superseded 2026-08-19: title-matching removed entirely (was the false-positive source); filter is now locationsText + additionalLocations only. See ADR-0006 update.
 - [x] Telework tier: 198 dept slices → 3,752 jobs inserted, zero errors; dedupe verified across all sources
 - [x] /company/{x} hubs (shipped in Phase B — companies.astro + company/[slug].astro)

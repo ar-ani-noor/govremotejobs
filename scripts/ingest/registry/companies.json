@@ -4,6 +4,7 @@
     { "name": "Leidos",              "ats": "workday", "tenant": "leidos", "instance": "wd5",  "site": "External" },
     { "name": "Booz Allen Hamilton", "ats": "workday", "tenant": "bah",    "instance": "wd1",  "site": "BAH_Jobs" },
     { "name": "CACI International",  "ats": "workday", "tenant": "caci",   "instance": "wd1",  "site": "External" },
-    { "name": "GDIT",                "ats": "workday", "tenant": "gdit",   "instance": "wd5",  "site": "External_Career_Site" }
+    { "name": "GDIT",                "ats": "workday", "tenant": "gdit",   "instance": "wd5",  "site": "External_Career_Site" },
+    { "name": "Guidehouse",          "ats": "workday", "tenant": "guidehouse", "instance": "wd1", "site": "External" }
   ]
 }
