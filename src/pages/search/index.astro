@@ -60,7 +60,7 @@ import Base from '../../layouts/Base.astro'
   </style>
 
   <script>
-    import { tierLabel } from '../../lib/format.ts'
+    import { tierLabel, typeLabel } from '../../lib/format.ts'
 
     type FilterCounts = Record<string, Record<string, number>>
 
@@ -178,7 +178,7 @@ import Base from '../../layouts/Base.astro'
           runSearchNow()
         })
         label.appendChild(checkbox)
-        const text = filterKey === 'location' ? tierLabel(value) : value
+        const text = filterKey === 'location' ? tierLabel(value) : filterKey === 'type' ? typeLabel(value) : value
         label.appendChild(document.createTextNode(` ${text} (${count.toLocaleString()})`))
         frag.appendChild(label)
       }
@@ -221,12 +221,13 @@ import Base from '../../layouts/Base.astro'
       if (!salaryActive()) return true
       const rawMin = Number(item.meta?.salary_min)
       const rawMax = Number(item.meta?.salary_max)
-      const min = Number.isFinite(rawMin) ? rawMin : Number.isFinite(rawMax) ? rawMax : null
-      const max = Number.isFinite(rawMax) ? rawMax : min
-      // Jobs that publish no salary are never excluded by a salary range.
-      if (min === null || max === null) return true
-      if (salaryMin !== null && max < salaryMin) return false
-      if (salaryMax !== null && min > salaryMax) return false
+      const min = Number.isFinite(rawMin) ? rawMin : null
+      const max = Number.isFinite(rawMax) ? rawMax : null
+      // Exclude only when the job's published range provably misses the user's:
+      // an unknown bound is never grounds for exclusion, so partial-salary jobs
+      // (and jobs with no salary at all) always pass the side they don't publish.
+      if (salaryMin !== null && max !== null && max < salaryMin) return false
+      if (salaryMax !== null && min !== null && min > salaryMax) return false
       return true
     }
 
@@ -329,13 +330,36 @@ import Base from '../../layouts/Base.astro'
       button.textContent = 'Load more'
     }
 
+    // Pagefind memoizes every fragment load promise, rejections included
+    // (loaded_fragments[hash] in its runtime), so once a fetch fails during a
+    // network blip, re-requesting the same fragments fails forever on the same
+    // instance. Real recovery needs pf.destroy() + a fresh search.
+    let recoverOnRetry = false
+
     async function loadMore(token: number) {
       if (token !== requestToken) return
+      if (recoverOnRetry) {
+        recoverOnRetry = false
+        try {
+          const pf = await pagefindPromise
+          await pf?.destroy?.()
+        } catch {
+          // a broken instance is being thrown away either way
+        }
+        pagefindPromise = null
+        runSearchNow()
+        return
+      }
       const button = document.getElementById('load-more') as HTMLButtonElement | null
       if (button) {
         button.disabled = true
         button.textContent = 'Loading…'
       }
+      // Snapshot paging state so a mid-fetch failure can roll back cleanly —
+      // otherwise a retry would skip the failed batch (cursor already advanced)
+      // or duplicate items already buffered in pending.
+      const prevCursor = cursor
+      const prevPending = pending.slice()
       try {
         const page = await collectPage(token)
         if (page === null || token !== requestToken) return
@@ -346,8 +370,18 @@ import Base from '../../layouts/Base.astro'
         updateCount()
         updateLoadMore(token)
       } catch (err) {
+        // One failed page fetch must not wipe the results the user already has
+        // (showError() replaces all of #results) — recover inline on the button.
         console.error('[search] Failed to load more results', err)
-        if (token === requestToken) showError()
+        if (token !== requestToken) return
+        cursor = prevCursor
+        pending = prevPending
+        recoverOnRetry = true
+        const btn = document.getElementById('load-more') as HTMLButtonElement | null
+        if (btn) {
+          btn.disabled = false
+          btn.textContent = 'Couldn’t load more — try again'
+        }
       }
     }
 
@@ -357,6 +391,11 @@ import Base from '../../layouts/Base.astro'
       const token = ++requestToken // invalidates any in-flight search or "Load more"
       const input = document.getElementById('search-input-page') as HTMLInputElement | null
       const query = (input?.value ?? '').trim()
+
+      // Keep ?q= in sync so refresh/back/share reflect the query actually shown,
+      // not the one the page happened to load with. replaceState, not pushState:
+      // typing shouldn't grow the history stack.
+      history.replaceState(null, '', query ? `?q=${encodeURIComponent(query)}` : window.location.pathname)
 
       // Nothing to search on (e.g. the user cleared the box) — go back to the
       // idle prompt rather than running a whole-index query.
@@ -382,14 +421,41 @@ import Base from '../../layouts/Base.astro'
       try {
         const pf = await loadPagefind()
         if (token !== requestToken) return
-        const search = await pf.search(query || null, { filters: activeFilters })
+        // Pagefind ANDs plain array values within one filter key, and every job
+        // has exactly one location/type/category/employer — two checked boxes in
+        // the same group would return zero results. { any: [...] } gives the
+        // union a checkbox UI implies.
+        const filtersArg: Record<string, { any: string[] }> = {}
+        for (const [key, values] of Object.entries(activeFilters)) {
+          if (values.length > 0) filtersArg[key] = { any: values }
+        }
+        const search = await pf.search(query || null, { filters: filtersArg })
         if (token !== requestToken) return
 
         // search.filters is scoped to this result set ("how many results if I
-        // also check this"); pf.filters() would report whole-index counts.
+        // also check this") — right for untouched groups, but inside a group
+        // with a selection it reports every sibling as 0. For refined groups,
+        // sibling counts come from a supplementary search that omits that
+        // group's own filter (classic faceted-search behavior). Not
+        // search.totalFilters: it returns all zeros for filter-only (null-term)
+        // searches, verified empirically against this site's built index.
+        const refinedKeys = FILTER_GROUPS.filter((g) => (activeFilters[g.key] ?? []).length > 0).map((g) => g.key)
+        const supplementary = await Promise.all(
+          refinedKeys.map(async (key) => {
+            const others: Record<string, { any: string[] }> = {}
+            for (const [k, values] of Object.entries(activeFilters)) {
+              if (k !== key && values.length > 0) others[k] = { any: values }
+            }
+            const s = await pf.search(query || null, { filters: others })
+            return [key, s.filters?.[key] ?? {}] as const
+          })
+        )
+        if (token !== requestToken) return
+        const supplementaryCounts = new Map(supplementary)
         const counts: FilterCounts = {}
         for (const group of FILTER_GROUPS) {
-          counts[group.key] = search.filters?.[group.key] ?? baseFilterCounts[group.key] ?? {}
+          counts[group.key] =
+            supplementaryCounts.get(group.key) ?? search.filters?.[group.key] ?? baseFilterCounts[group.key] ?? {}
         }
         renderFilters(counts)
 

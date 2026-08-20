@@ -13,5 +13,7 @@ export function dateText(iso: string | null): string | null {
 }
 
 export const tierLabel = (p: string) => (p === 'remote' ? 'Fully remote' : 'Telework eligible')
+export const typeLabel = (t: string) =>
+  t === 'federal' ? 'Federal' : t === 'contractor' ? 'Contractor' : t === 'state' ? 'State' : t
 export const applyLabel = (t: string) => (t === 'federal' ? 'Apply on USAJOBS' : 'Apply on the employer site')
 export const sourceLabel = (t: string, employer: string) => (t === 'federal' ? 'USAJOBS' : employer)
