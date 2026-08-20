@@ -14,7 +14,15 @@ export interface WorkdayCompany {
 const PAGE = 20 // CXS max page size
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
+// Title text is unreliable: "Remote Sensing" (imagery/GEOINT work) and
+// "Secure Remote Access" (VPN/cybersecurity infra) both contain the word
+// "remote" but describe on-site jobs, not remote work. Location fields are
+// the only trustworthy signal.
 const isRemote = (s: string) => /\bremote\b/i.test(s) && !/hybrid/i.test(s)
+// "7 Locations" (a count, not place names) appears for postings valid at
+// multiple offices — Workday shows the real names only on the detail page,
+// so a stub with this text must still be checked, not skipped.
+const isMultiLocationStub = (s: string) => /^\d+\s+Locations?$/i.test(s.trim())
 
 export function workdayAdapter(c: WorkdayCompany): SourceAdapter {
   const base = `https://${c.tenant}.${c.instance}.myworkdayjobs.com`
@@ -51,7 +59,12 @@ export function workdayAdapter(c: WorkdayCompany): SourceAdapter {
 
       // 2. Keep only listings whose LOCATION (or title) is actually remote —
       //    the text search also matches descriptions mentioning "remote".
-      const remoteStubs = stubs.filter((s) => isRemote(s.locationsText) || isRemote(s.title))
+      // Worth a detail fetch: locationsText itself says remote, OR it's a
+      // location-count stub we can't evaluate without opening it. Title text
+      // is deliberately NOT used as a signal (see isRemote comment above).
+      const remoteStubs = stubs.filter(
+        (s) => isRemote(s.locationsText) || isMultiLocationStub(s.locationsText),
+      )
 
       // 3. Fetch details for matches only (description, req id, posted date).
       const out: NormalizedJob[] = []
@@ -62,8 +75,12 @@ export function workdayAdapter(c: WorkdayCompany): SourceAdapter {
           const info = (await res.json())?.jobPostingInfo
           if (!info?.jobDescription) continue
           // Job must still be remote per the detail record when present
+          // Check the primary location AND every additional location this
+          // requisition is posted against — a multi-location posting only
+          // needs ONE of them to be "Remote" to qualify.
           const loc = String(info.location ?? stub.locationsText)
-          if (!(isRemote(loc) || isRemote(String(info.remoteType ?? '')) || isRemote(stub.title))) continue
+          const additional: string[] = Array.isArray(info.additionalLocations) ? info.additionalLocations : []
+          if (!isRemote(loc) && !additional.some(isRemote)) continue
 
           out.push({
             source: `workday:${c.tenant}`,
