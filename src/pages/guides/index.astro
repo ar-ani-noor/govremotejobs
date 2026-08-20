@@ -1,0 +1,12 @@
+---
+import { getCollection } from 'astro:content'
+import Base from '../../layouts/Base.astro'
+const guides = (await getCollection('guides')).sort((a, b) => a.data.title.localeCompare(b.data.title))
+---
+<Base title="Guides — GovRemoteJobs" description="Guides to remote federal hiring, pay, resumes, and the agencies and contractors that hire remote.">
+  <h1>Guides</h1>
+  <p style="color:var(--muted);max-width:640px;">Straightforward explainers on how remote federal hiring actually works — pay, process, resumes, and where the remote jobs really are.</p>
+  {guides.map((g) => (
+    <a class="card job-row" href={`/guides/${g.id}`}><h3>{g.data.title}</h3><div class="meta">{g.data.description}</div></a>
+  ))}
+</Base>

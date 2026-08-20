@@ -61,9 +61,9 @@
 
 ## Phase E — Editorial for AdSense (2–4 wk part-time)
 
-- [ ] ~20 guides (remote federal how-to, GS pay scale, remote vs telework, federal resume, timeline, agency guides, contractor guides, veterans' preference, benefits value)
+- [x] 21 guides shipped 2026-08-19: 8 how-to/reference, 5 category (IT, program analysis, legal, engineering, contracting), 4 agency-specific (National Guard, AFMC, DLA, USCIS), 4 contractor-specific (CACI, GDIT, Leidos, Booz Allen) — all grounded in real live inventory data, not generic assumptions
 - [x] privacy / terms / about / contact pages shipped 2026-08-19 (site-wide footer disclaimer already existed since Phase B)
-- [ ] Interlink guides ↔ hubs
+- [x] Interlink guides <-> hubs: every guide links to relevant /agency, /company, or /category pages; verified 0 broken links across all 21 files. Added /category/{x} + /categories hub pages (previously deferred) so guides had real non-broken destinations to link to.
 
 ## Phase F — AdSense (0.5 d + review wait)
 

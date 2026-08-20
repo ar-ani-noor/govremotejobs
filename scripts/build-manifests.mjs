@@ -45,8 +45,8 @@ for (let i = 0; i < active.length; i += CHUNK) {
 }
 
 // Hub sitemap from what astro actually emitted
-const hubUrls = [`${SITE}/`, `${SITE}/remote`, `${SITE}/telework`, `${SITE}/agencies`, `${SITE}/companies`, `${SITE}/about`, `${SITE}/contact`, `${SITE}/privacy`, `${SITE}/terms`]
-for (const dir of ['agency', 'company']) {
+const hubUrls = [`${SITE}/`, `${SITE}/remote`, `${SITE}/telework`, `${SITE}/agencies`, `${SITE}/companies`, `${SITE}/categories`, `${SITE}/guides`, `${SITE}/about`, `${SITE}/contact`, `${SITE}/privacy`, `${SITE}/terms`]
+for (const dir of ['agency', 'company', 'category', 'guides']) {
   const base = join(DIST, dir)
   if (existsSync(base)) {
     for (const d of readdirSync(base)) hubUrls.push(`${SITE}/${dir}/${d.replace(/\.html$/, '')}`)

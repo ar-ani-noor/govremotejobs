@@ -1,0 +1,25 @@
+---
+import Base from '../../layouts/Base.astro'
+import JobList from '../../components/JobList.astro'
+import { activeJobs, kebab, type Job } from '../../lib/db.ts'
+
+export async function getStaticPaths() {
+  const jobs = (await activeJobs()).filter((j) => j.category_name)
+  const byCategory = new Map<string, Job[]>()
+  for (const j of jobs) {
+    const k = kebab(j.category_name!)
+    byCategory.set(k, [...(byCategory.get(k) ?? []), j])
+  }
+  return [...byCategory.entries()].map(([slug, list]) => ({ params: { slug }, props: { list } }))
+}
+const { list } = Astro.props
+const category = list[0].category_name
+---
+<Base
+  title={`Remote & Telework ${category} Jobs`}
+  description={`${list.length} remote and telework-eligible ${category} positions in US government and federal contracting, updated daily.`}
+>
+  <h1>{category}</h1>
+  <p style="color:var(--muted);">{list.length} open position{list.length === 1 ? '' : 's'} in this category</p>
+  <JobList jobs={list} />
+</Base>
