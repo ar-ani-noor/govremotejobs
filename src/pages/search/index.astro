@@ -57,8 +57,14 @@ import Base from '../../layouts/Base.astro'
 
     async function loadPagefind() {
       if (pagefind) return pagefind
-      // @ts-ignore -- generated at build time by `npx pagefind`, not present in dev
-      pagefind = await import(/* @vite-ignore */ '/pagefind/pagefind.js')
+      // @ts-ignore -- generated at build time by `npx pagefind`, not present in dev.
+      // Hidden from Vite's static import analysis via Function() indirection — a
+      // plain `import('/pagefind/pagefind.js')` gets wrapped in Vite's
+      // __vitePreload() helper, which throws `__VITE_PRELOAD__ is not defined`
+      // because this path doesn't exist until Pagefind's build step runs, after
+      // Vite's analysis pass.
+      const dynamicImport = new Function('specifier', 'return import(specifier)')
+      pagefind = await dynamicImport('/pagefind/pagefind.js')
       await pagefind.init()
       return pagefind
     }
