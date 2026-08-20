@@ -19,13 +19,16 @@ const isFederal = job.employer_type === 'federal'
 <Base title={`${job.title} — ${job.employer} (Remote)`} description={metaDesc}>
   <script type="application/ld+json" set:html={jobPostingJsonLd(job, Astro.site!.href.replace(/\/$/, ''))} slot="head" />
   <p class="meta" style="margin-bottom:0.4rem;">
-    <span class={`badge ${job.location_policy}`}>{tierLabel(job.location_policy)}</span>
-    <span class={`badge ${job.employer_type}`}>{job.employer_type === 'federal' ? 'Federal' : 'Contractor'}</span>
+    <span class={`badge ${job.location_policy}`} data-pagefind-filter={`location:${job.location_policy}`}>{tierLabel(job.location_policy)}</span>
+    <span class={`badge ${job.employer_type}`} data-pagefind-filter={`type:${job.employer_type}`}>{job.employer_type === 'federal' ? 'Federal' : 'Contractor'}</span>
   </p>
-  <h1>{job.title}</h1>
+  <h1 data-pagefind-filter={`employer:${job.employer}`}>{job.title}</h1>
   <p class="meta" style="margin-bottom:1.2rem;">
     <a href={employerHub}>{job.employer}</a>{job.department && ` · ${job.department}`}
   </p>
+  {job.category_name && <p data-pagefind-filter={`category:${job.category_name}`} style="display:none;">{job.category_name}</p>}
+  {job.salary_min && <p data-pagefind-meta={`salary_min:${job.salary_min}`} style="display:none;"></p>}
+  {job.salary_max && <p data-pagefind-meta={`salary_max:${job.salary_max}`} style="display:none;"></p>}
 
   <div class="card">
     <dl class="facts">
