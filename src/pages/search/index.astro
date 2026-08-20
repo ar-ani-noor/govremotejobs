@@ -113,14 +113,15 @@ import Base from '../../layouts/Base.astro'
         return
       }
       container.innerHTML = filtered
-        .map(
-          (item: any) => `
-        <a class="job-row card" href="${item.url}">
+        .map((item: any) => {
+          const url = item.url.replace(/\/$/, '') // Pagefind indexes with a trailing slash, but trailingSlash:'never' only serves the no-slash form
+          return `
+        <a class="job-row card" href="${url}">
           <h3>${item.meta?.title ?? item.url}</h3>
           <p class="meta">${item.excerpt}</p>
         </a>
-      `,
-        )
+      `
+        })
         .join('')
     }
 
@@ -148,6 +149,7 @@ import Base from '../../layouts/Base.astro'
       const headerInput = document.querySelector('.header-search input[type="search"]') as HTMLInputElement | null
       if (headerInput) {
         headerInput.id = 'search-input-page'
+        headerInput.value = q // client-side URL read — Astro.url.searchParams is meaningless in a static build
         headerInput.closest('form')?.addEventListener('submit', (e) => {
           e.preventDefault()
           runSearch()
