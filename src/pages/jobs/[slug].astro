@@ -11,6 +11,11 @@ export async function getStaticPaths() {
 }
 const { job } = Astro.props
 const salary = salaryText(job.salary_min, job.salary_max, job.salary_interval)
+// Pagefind salary meta must be comparable across jobs, but salary_interval is
+// 'YEAR' | 'HOUR' — an untouched $30/hour would lose to a "min $50,000" filter
+// even though it annualizes to ~$62k. 2087 is the federal standard annual work
+// hours factor (5 U.S.C. 5504(b)).
+const annualize = (n: number) => Math.round(job.salary_interval === 'HOUR' ? n * 2087 : n)
 const employerHub = job.employer_type === 'federal' ? `/agency/${kebab(job.employer)}` : `/company/${kebab(job.employer)}`
 const metaDesc = `${tierLabel(job.location_policy)} ${job.employer_type === 'federal' ? 'federal' : 'contractor'} job at ${job.employer}${salary ? `, ${salary}` : ''}. Apply on the original posting.`
 const resumeKeywords = extractKeywords(job.description_html)
@@ -18,35 +23,47 @@ const isFederal = job.employer_type === 'federal'
 ---
 <Base title={`${job.title} — ${job.employer} (Remote)`} description={metaDesc}>
   <script type="application/ld+json" set:html={jobPostingJsonLd(job, Astro.site!.href.replace(/\/$/, ''))} slot="head" />
-  <p class="meta" style="margin-bottom:0.4rem;">
-    <span class={`badge ${job.location_policy}`} data-pagefind-filter={`location:${job.location_policy}`}>{tierLabel(job.location_policy)}</span>
-    <span class={`badge ${job.employer_type}`} data-pagefind-filter={`type:${job.employer_type}`}>{job.employer_type === 'federal' ? 'Federal' : 'Contractor'}</span>
-  </p>
-  <h1 data-pagefind-filter={`employer:${job.employer}`}>{job.title}</h1>
-  <p class="meta" style="margin-bottom:1.2rem;">
-    <a href={employerHub}>{job.employer}</a>{job.department && ` · ${job.department}`}
-  </p>
-  {job.category_name && <p data-pagefind-filter={`category:${job.category_name}`} style="display:none;">{job.category_name}</p>}
-  {job.salary_min && <p data-pagefind-meta={`salary_min:${job.salary_min}`} style="display:none;"></p>}
-  {job.salary_max && <p data-pagefind-meta={`salary_max:${job.salary_max}`} style="display:none;"></p>}
-
-  <div class="card">
-    <dl class="facts">
-      {salary && <><dt>Salary</dt><dd>{salary}</dd></>}
-      {job.grade_low && <><dt>Grade</dt><dd>{job.grade_low}{job.grade_high && job.grade_high !== job.grade_low ? `–${job.grade_high}` : ''}</dd></>}
-      <dt>Work location</dt><dd>{tierLabel(job.location_policy)} (US)</dd>
-      {job.employment_type && <><dt>Schedule</dt><dd>{job.employment_type}</dd></>}
-      <dt>Posted</dt><dd>{dateText(job.posted_at)}</dd>
-      {job.closes_at && <><dt>Apply by</dt><dd>{dateText(job.closes_at)}</dd></>}
-      {job.category_name && <><dt>Category</dt><dd>{job.category_name}</dd></>}
-    </dl>
-    <p style="margin-top:1rem;">
-      <a class="btn" href={job.apply_url} rel="nofollow noopener" target="_blank">{applyLabel(job.employer_type)} →</a>
+  <!--
+    data-pagefind-body scopes the search index to job pages only. Pagefind
+    indexes every built page by default; the moment any page carries this
+    attribute, indexing becomes opt-in site-wide, so guides, category/agency
+    hubs, the homepage and /search itself drop out of "Search Jobs" results.
+    The wrapper must enclose every data-pagefind-filter / data-pagefind-meta
+    element below plus the searchable copy — <main> lives in Base.astro, so a
+    plain (visually inert) div is used here. The resume checker and the closing
+    CTA sit outside it: boilerplate repeated on all 3.7k pages, not content.
+  -->
+  <div data-pagefind-body>
+    <p class="meta" style="margin-bottom:0.4rem;">
+      <span class={`badge ${job.location_policy}`} data-pagefind-filter={`location:${job.location_policy}`}>{tierLabel(job.location_policy)}</span>
+      <span class={`badge ${job.employer_type}`} data-pagefind-filter={`type:${job.employer_type}`}>{job.employer_type === 'federal' ? 'Federal' : 'Contractor'}</span>
     </p>
-    <p class="meta" style="margin-top:0.5rem;">Source: {sourceLabel(job.employer_type, job.employer)}. Applications happen on the original posting, not on this site.</p>
-  </div>
+    <h1 data-pagefind-filter={`employer:${job.employer}`}>{job.title}</h1>
+    <p class="meta" style="margin-bottom:1.2rem;">
+      <a href={employerHub}>{job.employer}</a>{job.department && ` · ${job.department}`}
+    </p>
+    {job.category_name && <p data-pagefind-filter={`category:${job.category_name}`} style="display:none;">{job.category_name}</p>}
+    {job.salary_min && <p data-pagefind-meta={`salary_min:${annualize(job.salary_min)}`} style="display:none;"></p>}
+    {job.salary_max && <p data-pagefind-meta={`salary_max:${annualize(job.salary_max)}`} style="display:none;"></p>}
 
-  <article class="description" set:html={job.description_html} />
+    <div class="card">
+      <dl class="facts">
+        {salary && <><dt>Salary</dt><dd>{salary}</dd></>}
+        {job.grade_low && <><dt>Grade</dt><dd>{job.grade_low}{job.grade_high && job.grade_high !== job.grade_low ? `–${job.grade_high}` : ''}</dd></>}
+        <dt>Work location</dt><dd>{tierLabel(job.location_policy)} (US)</dd>
+        {job.employment_type && <><dt>Schedule</dt><dd>{job.employment_type}</dd></>}
+        <dt>Posted</dt><dd>{dateText(job.posted_at)}</dd>
+        {job.closes_at && <><dt>Apply by</dt><dd>{dateText(job.closes_at)}</dd></>}
+        {job.category_name && <><dt>Category</dt><dd>{job.category_name}</dd></>}
+      </dl>
+      <p style="margin-top:1rem;">
+        <a class="btn" href={job.apply_url} rel="nofollow noopener" target="_blank">{applyLabel(job.employer_type)} →</a>
+      </p>
+      <p class="meta" style="margin-top:0.5rem;">Source: {sourceLabel(job.employer_type, job.employer)}. Applications happen on the original posting, not on this site.</p>
+    </div>
+
+    <article class="description" set:html={job.description_html} />
+  </div>
 
   <section class="card resume-check" id="resume-check">
     <h2 style="margin-top:0;">Check your resume against this job</h2>
