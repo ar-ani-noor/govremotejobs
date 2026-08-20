@@ -31,7 +31,7 @@ import Base from '../../layouts/Base.astro'
       </div>
     </aside>
     <div class="search-results" id="results">
-      <p class="meta">Enter a search term or apply filters to see jobs.</p>
+      <p class="meta">Loading jobs…</p>
     </div>
   </div>
 
@@ -397,26 +397,9 @@ import Base from '../../layouts/Base.astro'
       // typing shouldn't grow the history stack.
       history.replaceState(null, '', query ? `?q=${encodeURIComponent(query)}` : window.location.pathname)
 
-      // Nothing to search on (e.g. the user cleared the box) — go back to the
-      // idle prompt rather than running a whole-index query.
-      const anyFilter = FILTER_GROUPS.some((g) => (activeFilters[g.key] ?? []).length > 0)
-      if (!query && !anyFilter && !salaryActive()) {
-        allResults = []
-        pending = []
-        cursor = 0
-        shown = 0
-        showMessage('<p class="meta">Enter a search term or apply filters to see jobs.</p>')
-        loadPagefind()
-          .then(() => {
-            if (token === requestToken) renderFilters(baseFilterCounts)
-          })
-          .catch((err) => {
-            console.error('[search] Failed to load Pagefind', err)
-            if (token === requestToken) showError()
-          })
-        return
-      }
-
+      // No query and no filters is a valid state: browse-all. pf.search(null, {})
+      // returns the whole index, so the page always shows jobs instead of an
+      // empty prompt waiting for input.
       showSearching()
       try {
         const pf = await loadPagefind()
@@ -523,15 +506,9 @@ import Base from '../../layouts/Base.astro'
         scheduleSearch()
       })
 
-      if (q) runSearchNow()
-      else {
-        loadPagefind()
-          .then(() => renderFilters(baseFilterCounts))
-          .catch((err) => {
-            console.error('[search] Failed to load Pagefind', err)
-            showError()
-          })
-      }
+      // Always search on load — with no ?q= this is browse-all, so the page
+      // opens showing jobs rather than waiting for input.
+      runSearchNow()
     })
   </script>
 </Base>
