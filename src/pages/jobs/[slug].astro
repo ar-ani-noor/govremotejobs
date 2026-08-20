@@ -34,22 +34,32 @@ const isFederal = job.employer_type === 'federal'
     CTA sit outside it: boilerplate repeated on all 3.7k pages, not content.
   -->
   <div data-pagefind-body>
-    <p class="meta" style="margin-bottom:0.4rem;">
+    {/* data-pagefind-ignore drops an element's TEXT from the index (so search
+        excerpts start at the real description instead of badge/facts
+        boilerplate) while filters/meta tagged inside are still processed —
+        documented Pagefind behavior. The employer line below stays indexed on
+        purpose: "search by agency or company" needs the name as free text. */}
+    <p class="meta" style="margin-bottom:0.4rem;" data-pagefind-ignore>
       <span class={`badge ${job.location_policy}`} data-pagefind-filter={`location:${job.location_policy}`}>{tierLabel(job.location_policy)}</span>
       <span class={`badge ${job.employer_type}`} data-pagefind-filter={`type:${job.employer_type}`}>{job.employer_type === 'federal' ? 'Federal' : 'Contractor'}</span>
     </p>
-    <h1 data-pagefind-filter={`employer:${job.employer}`}>{job.title}</h1>
+    {/* h1 is ignored (its text would otherwise lead every excerpt, duplicating
+        the card's own title line), so the title meta is set explicitly. */}
+    <h1 data-pagefind-ignore data-pagefind-filter={`employer:${job.employer}`} data-pagefind-meta={`title:${job.title}`}>{job.title}</h1>
     <p class="meta" style="margin-bottom:1.2rem;">
       <a href={employerHub}>{job.employer}</a>{job.department && ` · ${job.department}`}
     </p>
-    {job.category_name && <p data-pagefind-filter={`category:${job.category_name}`} style="display:none;">{job.category_name}</p>}
+    {job.category_name && <p data-pagefind-ignore data-pagefind-filter={`category:${job.category_name}`} style="display:none;">{job.category_name}</p>}
     {/* != null, not truthiness: Astro renders a bare 0 from a falsy guard, and a
         legitimate $0 lower bound would both paint a stray "0" into the page and
         drop the meta the salary filter needs. */}
     {job.salary_min != null && <p data-pagefind-meta={`salary_min:${annualize(job.salary_min)}`} style="display:none;"></p>}
     {job.salary_max != null && <p data-pagefind-meta={`salary_max:${annualize(job.salary_max)}`} style="display:none;"></p>}
+    {/* Display strings for search result cards. */}
+    {salary && <p data-pagefind-meta={`salary:${salary}`} style="display:none;"></p>}
+    <p data-pagefind-meta={`posted:${dateText(job.posted_at)}`} style="display:none;"></p>
 
-    <div class="card">
+    <div class="card" data-pagefind-ignore>
       <dl class="facts">
         {salary && <><dt>Salary</dt><dd>{salary}</dd></>}
         {job.grade_low && <><dt>Grade</dt><dd>{job.grade_low}{job.grade_high && job.grade_high !== job.grade_low ? `–${job.grade_high}` : ''}</dd></>}

@@ -273,13 +273,52 @@ import Base from '../../layouts/Base.astro'
         const url = String(item.url ?? '').replace(/\/$/, '')
         const card = document.createElement('a')
         card.className = 'job-row card'
-        card.href = url
+        card.href = url || '/'
+
+        // Each fragment ships the page's own filter values — reuse them for the
+        // same badge row job pages render, instead of letting page furniture
+        // leak into the excerpt.
+        const location = item.filters?.location?.[0]
+        const type = item.filters?.type?.[0]
+        if (location || type) {
+          const badges = document.createElement('p')
+          badges.className = 'meta'
+          badges.style.marginBottom = '0.15rem'
+          if (location) {
+            const b = document.createElement('span')
+            b.className = `badge ${location}`
+            b.textContent = tierLabel(location)
+            badges.appendChild(b)
+          }
+          if (type) {
+            const b = document.createElement('span')
+            b.className = `badge ${type}`
+            b.textContent = typeLabel(type)
+            badges.appendChild(b)
+          }
+          card.appendChild(badges)
+        }
+
         const title = document.createElement('h3')
         title.textContent = item.meta?.title ?? url // textContent, so titles with & or < can't break the markup
+        card.appendChild(title)
+
+        const factsBits = [
+          item.filters?.employer?.[0],
+          item.meta?.salary,
+          item.meta?.posted ? `Posted ${item.meta.posted}` : null,
+        ].filter(Boolean)
+        if (factsBits.length) {
+          const facts = document.createElement('p')
+          facts.className = 'meta'
+          facts.style.marginBottom = '0.35rem'
+          facts.textContent = factsBits.join(' · ')
+          card.appendChild(facts)
+        }
+
         const excerpt = document.createElement('p')
         excerpt.className = 'meta'
         excerpt.innerHTML = item.excerpt ?? '' // Pagefind-generated HTML (<mark> highlights)
-        card.appendChild(title)
         card.appendChild(excerpt)
         frag.appendChild(card)
       }
