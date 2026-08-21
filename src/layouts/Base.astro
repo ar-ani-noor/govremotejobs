@@ -78,9 +78,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href.replace(/\/$/, ''
       .btn:hover, .card a.btn:hover, .description a.btn:hover { background: var(--coral-dark); color: var(--paper); }
       .facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1.2rem; font-size: 0.95rem; }
       .facts dt { color: var(--muted-paper); }
-      .facts dd { font-weight: 600; font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 0.88rem; }
+      .facts dd { font-weight: 600; font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 0.88rem; overflow-wrap: anywhere; }
       /* Long-form reading (job descriptions, guides) lives on paper. */
-      .description { background: var(--paper); border: 2px solid var(--ink); padding: 1.3rem 1.5rem; color: #3c3a30; margin-bottom: 0.8rem; }
+      /* overflow-wrap: job descriptions embed long unbroken strings (OPM/agency
+         URLs) that otherwise punch out of the card on phone widths. */
+      .description { background: var(--paper); border: 2px solid var(--ink); padding: 1.3rem 1.5rem; color: #3c3a30; margin-bottom: 0.8rem; overflow-wrap: anywhere; }
       .description h2 { font-size: 1.15rem; margin: 1.3rem 0 0.5rem; color: var(--ink); }
       .description h2:first-child { margin-top: 0; }
       .description h3 { color: var(--ink); margin: 1rem 0 0.4rem; }
