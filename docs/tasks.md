@@ -91,7 +91,8 @@
 
 - [ ] Record decision as ADR: **invest** (states, more contractors/content) if GSC impressions grow w/w, ≥50% job pages indexed, any Jobs-box impressions · **diagnose** if indexed-but-zero-impressions (origin-wins risk → shift to hubs/guides) · **stop/coast** if <10% indexation, flat zero
 
-## Phase G — State feeds (post-checkpoint, 1–2 d each)
+## Phase G — State feeds — PARKED 2026-08-20 (see ADR-0012)
 
-- [ ] NY first (data.ny.gov Socrata feed) → adapter → /state/ny
-- [ ] Discovery tasks: CA, TX, WA (official feeds only; skip states without)
+- [x] Discovery completed 2026-08-20 for all four candidates — none passes the source-quality bar. NY: data.ny.gov dataset no longer exists; StateJobsNY is scrape-only HTML. CA/TX: no datasets on their open-data portals. WA: NEOGOV tenant serves HTML fragments (no JSON) with no remote/telework facet. Full findings + reopen criteria in ADR-0012.
+- [-] NY adapter → /state/ny — blocked on a qualifying source (prohibited without one)
+- [ ] Reopen check (cheap, occasional): Socrata/CKAN catalogs for new vacancy datasets; "Remote Employment" facet appearing on a state's NEOGOV tenant; any state moving to Workday (then it's a one-line registry addition — Ohio/Georgia already run Workday for civil service, highest-yield probe if state coverage becomes a priority)
