@@ -4,6 +4,7 @@ import { activeJobs, kebab } from '../../lib/db.ts'
 import { salaryText, dateText, tierLabel, applyLabel, sourceLabel } from '../../lib/format.ts'
 import { jobPostingJsonLd } from '../../lib/jsonld.ts'
 import { extractKeywords } from '../../lib/resume-match.ts'
+import AdSlot from '../../components/AdSlot.astro'
 
 export async function getStaticPaths() {
   const jobs = await activeJobs()
@@ -39,7 +40,7 @@ const isFederal = job.employer_type === 'federal'
         boilerplate) while filters/meta tagged inside are still processed —
         documented Pagefind behavior. The employer line below stays indexed on
         purpose: "search by agency or company" needs the name as free text. */}
-    <p class="meta" style="margin-bottom:0.4rem;" data-pagefind-ignore>
+    <p class="meta on-ground" style="margin-bottom:0.4rem;" data-pagefind-ignore>
       <span class={`badge ${job.location_policy}`} data-pagefind-filter={`location:${job.location_policy}`}>{tierLabel(job.location_policy)}</span>
       <span class={`badge ${job.employer_type}`} data-pagefind-filter={`type:${job.employer_type}`}>{job.employer_type === 'federal' ? 'Federal' : 'Contractor'}</span>
     </p>
@@ -59,6 +60,10 @@ const isFederal = job.employer_type === 'federal'
     {salary && <p data-pagefind-meta={`salary:${salary}`} style="display:none;"></p>}
     <p data-pagefind-meta={`posted:${dateText(job.posted_at)}`} style="display:none;"></p>
 
+    {/* Ad unit 1: under the job header, above the facts card. Never between the
+        facts box and the Apply button (Phase F hard rule). */}
+    <AdSlot slot="job-header" />
+
     <div class="card" data-pagefind-ignore>
       <dl class="facts">
         {salary && <><dt>Salary</dt><dd>{salary}</dd></>}
@@ -77,6 +82,9 @@ const isFederal = job.employer_type === 'federal'
 
     <article class="description" set:html={job.description_html} />
   </div>
+
+  {/* Ad unit 2: after the description, before the resume checker. */}
+  <AdSlot slot="job-footer" />
 
   <section class="card resume-check" id="resume-check">
     <h2 style="margin-top:0;">Check your resume against this job</h2>

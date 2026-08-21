@@ -4,8 +4,9 @@ interface Props {
   title: string
   description: string
   noindex?: boolean
+  hideSearch?: boolean
 }
-const { title, description, noindex = false } = Astro.props
+const { title, description, noindex = false, hideSearch = false } = Astro.props
 const canonical = new URL(Astro.url.pathname, Astro.site).href.replace(/\/$/, '') || Astro.site
 ---
 <!doctype html>
@@ -16,63 +17,100 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href.replace(/\/$/, ''
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     {noindex && <meta name="robots" content="noindex" />}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Staatliches&family=Public+Sans:wght@400;600;700&family=Spline+Sans+Mono:wght@400;600&display=swap" />
     <slot name="head" />
     <style is:global>
+      /* Dusk Sky design system (ADR-0011): evening-poster palette — paper cards
+         on a twilight ground, Staatliches display, Public Sans body (the federal
+         government's own open-source face), Spline Sans Mono for data. */
       :root {
-        --navy: #12314e; --teal: #0e7490; --teal-dark: #155e75;
-        --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --muted: #64748b;
-        --border: #e2e8f0; --gold: #b45309; --green: #047857;
+        --dusk: #24384f; --dusk-deep: #101c2e; --sky: #2e4560; --panel: #1d3049;
+        --ink: #16243a; --paper: #f2eee2; --gold: #e0b64f; --coral: #cf5b3f; --coral-dark: #b0452c;
+        --muted-paper: #5c5a4c; --light: #a9b8c9;
+        /* legacy token names kept so per-page inline styles keep working */
+        --navy: #16243a; --teal: #cf5b3f; --teal-dark: #b0452c;
+        --bg: #24384f; --card: #f2eee2; --text: #f2eee2; --muted: #a9b8c9;
+        --border: #16243a; --green: #2e4560;
       }
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
-      a { color: var(--teal); }
+      body { font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; background: var(--dusk); color: var(--paper); line-height: 1.6; }
+      a { color: var(--gold); } a:hover { color: #ecc76f; }
       .wrap { max-width: 880px; margin: 0 auto; padding: 0 1rem; }
-      header.site { background: var(--navy); color: #fff; padding: 0.9rem 0; }
+      header.site { background: var(--dusk-deep); padding: 0.9rem 0; }
       header.site .wrap { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-      .logo { color: #fff; text-decoration: none; font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; }
-      .logo span { color: #67e8f9; }
-      nav.site a { color: #cbd5e1; text-decoration: none; margin-left: 1rem; font-size: 0.95rem; }
-      nav.site a:hover { color: #fff; }
+      .logo { color: var(--paper); text-decoration: none; font-family: 'Staatliches', 'Arial Narrow', sans-serif; font-weight: 400; font-size: 1.45rem; letter-spacing: 0.04em; }
+      .logo span { color: var(--gold); }
+      nav.site a { color: var(--light); text-decoration: none; margin-left: 1rem; font-size: 0.95rem; font-weight: 600; }
+      nav.site a:hover { color: var(--paper); }
       /* Full-width row at the bottom of the header — the input stretches so the
          bar's edges line up with the page content (.wrap) below it. */
       .header-search { display: flex; gap: 0.5rem; flex: 1 1 100%; margin-top: 0.35rem; }
-      .header-search input[type="search"] { flex: 1; min-width: 0; padding: 0.55rem 0.8rem; border-radius: 6px; border: 1px solid transparent; font-size: 1rem; }
-      .header-search button { padding: 0.55rem 1.2rem; border-radius: 6px; border: none; background: var(--teal); color: #fff; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
-      .header-search button:hover { background: var(--teal-dark); }
+      .header-search input[type="search"] { flex: 1; min-width: 0; padding: 0.55rem 0.8rem; border-radius: 0; border: 2px solid var(--ink); font-size: 1rem; background: var(--paper); color: var(--ink); font-family: inherit; }
+      .header-search input[type="search"]::placeholder { color: #9b9787; }
+      .header-search button { padding: 0.55rem 1.2rem; border-radius: 0; border: none; background: var(--coral); color: var(--paper); font-size: 0.95rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+      .header-search button:hover { background: var(--coral-dark); }
       main { padding: 2rem 0 3rem; }
-      h1 { font-size: 1.7rem; line-height: 1.3; color: var(--navy); margin-bottom: 0.5rem; }
-      h2 { font-size: 1.2rem; color: var(--navy); margin: 1.5rem 0 0.5rem; }
-      .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem 1.25rem; margin-bottom: 0.8rem; }
-      .job-row { display: block; text-decoration: none; color: inherit; }
-      .job-row:hover { border-color: var(--teal); }
-      .job-row h3 { font-size: 1.02rem; color: var(--teal-dark); margin-bottom: 0.15rem; }
-      .meta { font-size: 0.88rem; color: var(--muted); }
-      .badge { display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 0.1rem 0.55rem; border-radius: 99px; margin-right: 0.4rem; vertical-align: 1px; }
-      .badge.remote { background: #ecfdf5; color: var(--green); }
-      .badge.telework { background: #fffbeb; color: var(--gold); }
-      .badge.contractor { background: #eff6ff; color: #1d4ed8; }
-      .badge.federal { background: #f1f5f9; color: var(--navy); }
-      .btn { display: inline-block; background: var(--teal); color: #fff; text-decoration: none; font-weight: 700; padding: 0.7rem 1.4rem; border-radius: 8px; }
-      .btn:hover { background: var(--teal-dark); }
+      h1 { font-family: 'Staatliches', 'Arial Narrow', sans-serif; font-weight: 400; font-size: 2.3rem; line-height: 1.05; color: var(--paper); margin-bottom: 0.5rem; letter-spacing: 0.02em; text-transform: uppercase; }
+      h2 { font-family: 'Staatliches', 'Arial Narrow', sans-serif; font-weight: 400; font-size: 1.45rem; color: var(--paper); margin: 1.6rem 0 0.6rem; letter-spacing: 0.03em; text-transform: uppercase; }
+      .card { background: var(--paper); border: 2px solid var(--ink); border-radius: 0; padding: 1.1rem 1.25rem; margin-bottom: 0.8rem; color: var(--ink); }
+      .card h2, .card h3 { color: var(--ink); }
+      .card a { color: var(--coral); } .card a:hover { color: var(--coral-dark); }
+      .job-row { display: block; text-decoration: none; color: var(--ink); }
+      .job-row:hover { border-color: var(--gold); }
+      .job-row h3 { font-size: 1.02rem; color: var(--ink); margin-bottom: 0.3rem; }
+      .meta { font-size: 0.88rem; color: var(--light); }
+      .card .meta, .job-row .meta { color: var(--muted-paper); }
+      .job-row .meta { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 0.78rem; }
+      .badge { display: inline-block; font-family: 'Public Sans', system-ui, sans-serif; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.15rem 0.6rem; border-radius: 0; margin-right: 0.4rem; vertical-align: 1px; }
+      .badge.remote { background: var(--ink); color: var(--paper); }
+      .badge.telework { background: var(--gold); color: var(--ink); }
+      .badge.federal { background: transparent; border: 1.5px solid var(--ink); color: var(--ink); padding: calc(0.15rem - 1.5px) calc(0.6rem - 1.5px); }
+      .badge.contractor { background: transparent; border: 1.5px solid var(--sky); color: var(--sky); padding: calc(0.15rem - 1.5px) calc(0.6rem - 1.5px); }
+      .on-ground .badge.federal { border-color: var(--paper); color: var(--paper); }
+      .on-ground .badge.contractor { border-color: var(--light); color: var(--light); }
+      /* .card a.btn included: .card a (0,1,1) would otherwise outrank .btn and
+         paint coral text on the coral button. */
+      .btn, .card a.btn, .description a.btn { display: inline-block; background: var(--coral); color: var(--paper); text-decoration: none; font-weight: 700; padding: 0.7rem 1.4rem; border-radius: 0; }
+      .btn:hover, .card a.btn:hover, .description a.btn:hover { background: var(--coral-dark); color: var(--paper); }
       .facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1.2rem; font-size: 0.95rem; }
-      .facts dt { color: var(--muted); }
-      .facts dd { font-weight: 600; }
-      .description h2 { font-size: 1.05rem; margin-top: 1.4rem; }
+      .facts dt { color: var(--muted-paper); }
+      .facts dd { font-weight: 600; font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 0.88rem; }
+      /* Long-form reading (job descriptions, guides) lives on paper. */
+      .description { background: var(--paper); border: 2px solid var(--ink); padding: 1.3rem 1.5rem; color: #3c3a30; margin-bottom: 0.8rem; }
+      .description h2 { font-size: 1.15rem; margin: 1.3rem 0 0.5rem; color: var(--ink); }
+      .description h2:first-child { margin-top: 0; }
+      .description h3 { color: var(--ink); margin: 1rem 0 0.4rem; }
       .description p { margin: 0.6rem 0; }
-      .description ul { margin: 0.6rem 0 0.6rem 1.4rem; }
-      footer.site { border-top: 1px solid var(--border); padding: 1.5rem 0 2.5rem; font-size: 0.85rem; color: var(--muted); }
-      footer.site a { color: var(--muted); }
-      .resume-check textarea { width: 100%; min-height: 160px; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.95rem; resize: vertical; margin: 0.75rem 0; }
+      .description ul, .description ol { margin: 0.6rem 0 0.6rem 1.4rem; }
+      .description a { color: var(--coral); }
+      .description strong { color: var(--ink); }
+      footer.site { background: var(--dusk-deep); margin-top: 2rem; padding: 1.5rem 0 2.5rem; font-size: 0.85rem; color: var(--light); }
+      footer.site a { color: var(--light); }
+      footer.site .imprint { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 1rem; color: #7d92ab; }
+      /* Ad containers: reserved, fixed-height, empty until ads are enabled —
+         heights are pre-set so a filled unit never shifts the layout (Phase F). */
+      .ad-slot { border: 2px dashed #5b7291; background: var(--panel); margin: 1rem 0; display: flex; align-items: center; justify-content: center; }
+      .ad-slot[data-ad-slot="leaderboard"], .ad-slot[data-ad-slot="job-header"] { min-height: 100px; }
+      .ad-slot[data-ad-slot="job-footer"] { min-height: 100px; }
+      .ad-slot[data-ad-slot="sidebar"] { min-height: 250px; }
+      .resume-check textarea { width: 100%; min-height: 160px; padding: 0.75rem; border: 2px solid var(--ink); border-radius: 0; font-family: inherit; font-size: 0.95rem; resize: vertical; margin: 0.75rem 0; background: #ffffff; color: var(--ink); }
       .resume-check .btn { margin-bottom: 0.5rem; border: none; cursor: pointer; font-size: 1rem; }
       .kw-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0 1rem; }
-      .kw-chip { display: inline-block; font-size: 0.85rem; padding: 0.25rem 0.65rem; border-radius: 99px; }
-      .kw-chip.kw-found { background: #ecfdf5; color: var(--green); }
-      .kw-chip.kw-missing { background: #fef2f2; color: #b91c1c; }
-      .resume-score { font-weight: 700; font-size: 1.05rem; color: var(--navy); margin-bottom: 0.5rem; }
+      .kw-chip { display: inline-block; font-size: 0.85rem; padding: 0.25rem 0.65rem; border-radius: 0; }
+      .kw-chip.kw-found { background: #dfe8dc; color: #33603a; }
+      .kw-chip.kw-missing { background: #f3ddd8; color: #8f2b1c; }
+      .resume-score { font-weight: 700; font-size: 1.05rem; color: var(--ink); margin-bottom: 0.5rem; }
       .resume-check h3 { font-size: 0.95rem; margin-top: 1rem; }
       .resume-check ul { margin: 0.5rem 0 0 1.2rem; }
       .resume-check ul li { margin-bottom: 0.4rem; }
+      @media (max-width: 640px) {
+        h1 { font-size: 1.8rem; }
+        nav.site a { margin-left: 0.55rem; font-size: 0.82rem; }
+      }
     </style>
   </head>
   <body>
@@ -86,7 +124,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href.replace(/\/$/, ''
           <a href="/companies">Contractors</a>
           <a href="/guides">Guides</a>
         </nav>
-        <SearchBar />
+        {!hideSearch && <SearchBar />}
       </div>
     </header>
     <main>
@@ -96,9 +134,9 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href.replace(/\/$/, ''
     </main>
     <footer class="site">
       <div class="wrap">
-        <p><strong>GovRemoteJobs</strong> lists remote and telework-eligible US government and federal contractor jobs, refreshed daily from official sources. Every listing links to the original posting — apply there.</p>
-        <p style="margin-top:0.5rem;">Not affiliated with the US government, USAJOBS, or any listed employer. Federal listing data via the official USAJOBS API.</p>
-        <p style="margin-top:1rem;"><a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a></p>
+        <p><strong style="color:var(--paper);">GovRemoteJobs</strong> lists remote and telework-eligible US government and federal contractor jobs, refreshed daily from official sources. Every listing links to the original posting — apply there.</p>
+        <p style="margin-top:0.5rem;"><a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy Policy</a> · <a href="/terms">Terms of Service</a></p>
+        <p class="imprint">GovRemoteJobs · Not affiliated with the U.S. government or USAJOBS · Federal listing data via the official USAJOBS API</p>
       </div>
     </footer>
   </body>

@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro'
+import AdSlot from '../../components/AdSlot.astro'
 ---
 <Base title="Search Jobs — GovRemoteJobs" description="Search and filter remote and telework-eligible US government and federal contractor jobs." noindex={true}>
   <h1>Search Jobs</h1>
@@ -29,6 +30,7 @@ import Base from '../../layouts/Base.astro'
         <label class="salary-label">Max <input type="number" id="salary-max" min="0" step="1000" placeholder="No max" /></label>
         <p class="meta" style="font-size:0.78rem;margin-top:0.35rem;">Hourly pay is compared as an annual figure (× 2,087 hours).</p>
       </div>
+      <AdSlot slot="sidebar" />
     </aside>
     <div class="search-results" id="results">
       <p class="meta">Loading jobs…</p>
@@ -38,7 +40,7 @@ import Base from '../../layouts/Base.astro'
   <style>
     .search-layout { display: grid; grid-template-columns: 220px 1fr; gap: 1.5rem; margin-top: 1rem; }
     .filter-group { margin-bottom: 1.25rem; }
-    .filter-group h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); margin-bottom: 0.5rem; }
+    .filter-group h3 { font-family: 'Staatliches', 'Arial Narrow', sans-serif; font-weight: 400; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--paper); border-bottom: 2px solid var(--paper); padding-bottom: 0.25rem; margin-bottom: 0.5rem; }
     /* :global() on every selector below that targets a node this page builds in
        JS. Astro scopes styles with a [data-astro-cid-*] attribute it can only
        stamp onto elements present in the template, so scoped rules never match
@@ -49,12 +51,13 @@ import Base from '../../layouts/Base.astro'
     /* Category (261 values) and Agency/Company (277 values) would otherwise
        render a ~15,000px-tall sidebar. Counts are sorted descending, so the
        useful options sit above the fold of this box. */
-    .filter-scroll { max-height: 260px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--border); border-radius: 6px; padding: 0.45rem 0.55rem; background: var(--card); }
+    .filter-scroll { max-height: 260px; overflow-y: auto; overscroll-behavior: contain; border: 2px solid var(--ink); border-radius: 0; padding: 0.45rem 0.55rem; background: var(--paper); color: var(--ink); }
     :global(.filter-option.is-empty) { opacity: 0.5; }
-    .salary-label { display: block; font-size: 0.85rem; margin-bottom: 0.4rem; }
-    .salary-label input { width: 100%; padding: 0.3rem 0.5rem; border: 1px solid var(--border); border-radius: 6px; margin-top: 0.2rem; }
-    :global(.result-count) { margin-bottom: 0.75rem; }
-    :global(.load-more) { border: none; cursor: pointer; font-size: 0.95rem; margin-top: 0.5rem; }
+    .salary-label { display: block; font-size: 0.85rem; margin-bottom: 0.4rem; color: var(--paper); }
+    .salary-label input { width: 100%; padding: 0.35rem 0.5rem; border: 2px solid var(--ink); border-radius: 0; margin-top: 0.2rem; background: var(--paper); color: var(--ink); font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 0.8rem; }
+    :global(.result-count) { margin-bottom: 0.75rem; color: var(--paper); }
+    :global(.load-more) { border: none; cursor: pointer; font-size: 0.95rem; margin-top: 0.5rem; background: var(--paper); color: var(--ink); }
+    :global(.load-more:hover) { background: #ffffff; }
     :global(.load-more[disabled]) { opacity: 0.6; cursor: default; }
     @media (max-width: 640px) { .search-layout { grid-template-columns: 1fr; } }
   </style>

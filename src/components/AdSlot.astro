@@ -1,0 +1,10 @@
+---
+// Reserved ad container (Phase F). Renders nothing until PUBLIC_ADS_ENABLED=true
+// is set at build time, so pages carry no empty boxes before AdSense approval.
+// When enabled, the .ad-slot CSS reserves a fixed height per placement so a
+// filled unit never shifts the layout (the no-CLS rule in tasks.md).
+interface Props { slot: 'leaderboard' | 'job-header' | 'job-footer' | 'sidebar' }
+const { slot } = Astro.props
+const enabled = import.meta.env.PUBLIC_ADS_ENABLED === 'true'
+---
+{enabled && <div class="ad-slot" data-ad-slot={slot} data-pagefind-ignore="all"></div>}

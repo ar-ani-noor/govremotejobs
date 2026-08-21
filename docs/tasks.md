@@ -74,6 +74,13 @@
 - [x] Merged to main 2026-08-20 (8 commits, `e07ebb9`..`30fa0c4`), plus post-merge review fixes (`903ff69`: OR filter groups, sibling counts, salary edge cases, resilient load-more)
 - [x] Deployed to production 2026-08-20. **Ops gotcha found live**: the Cloudflare rate-limiting rule (25 req/10s/IP, created same day for bot mitigation) throttled Pagefind's own index-chunk bursts → 429s → "invalid gzip data" → search dead in prod despite all localhost tests passing. Fixed by scoping the rule's expression to `not starts_with(http.request.uri.path, "/pagefind/")`. If that rule is ever tightened or recreated, keep the /pagefind/ exemption or search breaks again.
 
+## Phase E3 — "Dusk Sky" redesign — SHIPPED 2026-08-20
+
+- [x] Full visual redesign chosen via a 15-artboard design-canvas exploration (rounds 1-4); ADR-0011 records the system: dusk/paper/gold/coral palette, Staatliches + Public Sans + Spline Sans Mono, poster hero with SVG homestead scene, square-cornered paper cards
+- [x] Ad containers pre-wired per Phase F rules via AdSlot.astro — render nothing until PUBLIC_ADS_ENABLED=true at build; fixed heights reserved so enabling ads causes no CLS; placements: homepage leaderboard, job-header, job-footer, search sidebar
+- [x] SVG favicon added (gold sun on ink) — kills the long-standing 404
+- [x] Verified: build green (3,900 pages, 4 filters intact), Playwright screenshots desktop+mobile (home/search/job/guide), search interactivity smoke-tested post-restyle, Apply-button specificity bug caught and fixed pre-merge
+
 ## Phase F — AdSense (0.5 d + review wait)
 
 - [ ] Apply (only after Phase E done + some organic traffic)
